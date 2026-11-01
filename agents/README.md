@@ -19,10 +19,10 @@ Agent definitions for Sterling Brokerage Services (SBS) tooling.
    specific message. Routine on-time updates go out after a batch approval.
 3. **Named sources of truth.** The original starts from a "Manifest screen in the FC
    system", which does not describe how SBS operates. The revision names Full Circle TMS
-   and Aljex as the two systems of record, then the carrier tracking link, then email,
-   in that order, and requires the agent to report disagreements between them instead
-   of picking one. Every load is tagged with the TMS it came from, and the agent is
-   barred from writing status, rate, or carrier changes back into either system.
+   as the single system of record (Aljex is retired), then the carrier tracking link,
+   then Outlook email, in that order, and requires the agent to report disagreements
+   between them instead of picking one. The agent is barred from writing status, rate,
+   or carrier changes back into Full Circle.
 4. **Fixed update format.** Customers get the same short layout every time: reference,
    lanes, status, location, ETA with time zone, next touch.
 5. **Protects margin and carrier relationships.** Explicit rule that customer messages
@@ -38,14 +38,15 @@ plan for wiring it up, in order of least effort first.
 
 | Source | How the agent reads it | What is needed from Sterling |
 |---|---|---|
-| **Aljex** (Descartes Aljex) | Preferred: the Aljex REST API, which Descartes enables per customer. Fallback: a read-only Aljex login used through a browser connector. | Ask the Descartes account rep to enable API access and issue a key, or create a read-only Aljex user for the agent. |
-| **Full Circle TMS** | Preferred: Full Circle's API or scheduled export of the active load board. Fallback: a read-only Full Circle login used through a browser connector. | Ask Full Circle support whether API access is on the plan. If not, a read-only user. |
-| **Carrier tracking** | Browser connector opening the tracking link stored on each load, plus any ELD or load-tracking service (Macropoint, Trucker Tools, FourKites) Sterling already pays for. | Confirm which tracking service, if any, is in use so the agent reads it directly instead of each carrier's site. |
-| **Email** | Gmail or Microsoft 365 connector on the mailbox the updates send from. | **Still not named.** This should be a shared SBS mailbox (for example an ops@ or tracking@ address), not a personal inbox, so replies land where the team can see them. |
+| **Full Circle TMS** | Preferred: Full Circle's API or a scheduled export of the active load board. Fallback: a read-only Full Circle login used through a browser connector. | Ask Full Circle support whether API access is on the plan. If not, create a read-only user for the agent. |
+| **Outlook (Microsoft 365)** | Microsoft 365 connector on the mailbox the updates send from. Read inbound carrier email, create drafts, send approved updates. | The mailbox address. A shared SBS mailbox (for example tracking@ or ops@) is recommended over a personal inbox so replies land where the team can see them. The Microsoft 365 admin grants the connector access to that one mailbox. |
+| **Carrier tracking** | Browser connector opening the tracking link stored on each Full Circle load, plus any load-tracking service (Macropoint, Trucker Tools, FourKites) Sterling already pays for. | Confirm which tracking service, if any, is in use so the agent reads it directly instead of each carrier's site. |
+
+Retired: Aljex. Not a source. Any Aljex load number in an old email is looked up in
+Full Circle instead.
 
 Open questions for the owner:
 
-1. Which business runs on which TMS? If Sterling Transportation is on one and SBS is on
-   the other, the agent can skip the system that does not hold brokerage loads.
-2. Which mailbox sends customer updates?
-3. Is there a load-tracking service already in place, or is tracking carrier by carrier?
+1. Which Outlook mailbox sends customer updates?
+2. Is there a load-tracking service already in place, or is tracking carrier by carrier?
+3. Does Full Circle expose an API or export on Sterling's plan?
