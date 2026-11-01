@@ -2,7 +2,7 @@
 
 Same pattern as Agents 1 and 2 in the SBS Claude Agents Build Kit: Power Automate is the
 hands, Claude is the brain, one HTTP step. Full Circle TMS is the system of record. Customer
-updates send from the SBS Outlook mailbox. Nothing reaches a customer without a person
+updates send from michaelt@stibrokerage.com, where the SBS flows already live. Nothing reaches a customer without a person
 approving it until the auto-send switch is turned on.
 
 Files in this folder, ready to paste:
@@ -30,11 +30,14 @@ and stamps the row Sent. The list is the audit log.
 3. **Active loads.** Pull the F999 Data Dump by Order for the last 30 days (the API caps a
    call at 31 days). Filter to orders whose status is dispatched, picked up or in transit
    and that have no actual delivery date. This is the same definition the Command Center
-   uses for Loads in Transit.
+   uses for Loads in Transit. For each, also pull the newest pings from SBS's in-house
+   tracking link (location, timestamp) off the order record. The exact Full Circle route
+   for those pings is the one open item; see Build state.
 4. **Apply to each load**, with a 2-second pause between loads:
    1. Set `LoadRow` to the F999 row as text: order number, customer, customer reference,
       rep, origin, destination, pickup appointment, planned delivery window, current
-      status, last status time, booking contact name and email.
+      status, last status time, last tracking ping (location and time), booking contact
+      name and email.
    2. SharePoint Get items on **Shipment Status Log**, filter OrderNumber eq this order and
       SendState eq Sent, order by SentAt desc, Top 1. Set `LastSentUpdate` to its class,
       ETA, location and SentAt, or the word `null`.
@@ -60,7 +63,7 @@ and stamps the row Sent. The list is the audit log.
 
 1. **Trigger.** SharePoint, when an item is modified, on Shipment Status Log.
 2. **Condition.** SendState changed to Approved.
-3. Office 365 Outlook, Send an email (V2) from the SBS shared mailbox to `Recipient`,
+3. Office 365 Outlook, Send an email (V2) from michaelt@stibrokerage.com to `Recipient`,
    subject `DraftSubject`, body `DraftBody`, importance Normal.
 4. Update item: SendState = Sent, SentAt = utcNow(), SentBy = the approver.
 
@@ -108,11 +111,12 @@ Views: **Needs Me** (SendState = Draft, PROBLEM and DELAYED first, newest first)
   every status change, with no build at all. Turning it on by hand for the top customers is
   the fastest win here. This agent then handles what Track & Trace cannot: reading carrier
   email, spotting risk before the status changes, and writing a human-quality delay note.
-- **No carrier websites.** Power Automate cannot browse a carrier's tracking page. In this
-  version the evidence is Full Circle plus whatever lands in the two mailboxes: check-call
-  replies, forwarded driver texts, and tracking-link emails from services like Macropoint
-  or Trucker Tools. If SBS uses one of those services, say which and its emails become a
-  first-class source.
+- **Tracking comes from Full Circle, not carrier websites.** SBS tracks with its in-house
+  tracking link inside Full Circle, so location pings already sit on the order record and
+  no outside tracking site is involved. Power Automate reads them through the same gateway
+  API the other flows use. The one thing to confirm is which route returns an order's
+  tracking pings; if the gateway spec does not list one, it is a one-line question to
+  Derek Comartin at Full Circle, the same contact who shipped the carrier routes.
 
 ## Cost
 
@@ -130,4 +134,6 @@ limit from the Build Kit checklist is the backstop.
 | HTTP body | Written |
 | Shipment Status Log list | Not created |
 | Flow 1 and Flow 2 | Not built |
-| Mailbox for sending | Named as the SBS shared mailbox; confirm the address |
+| Mailbox for sending | michaelt@stibrokerage.com, confirmed Nov 1 |
+| Tracking source | In-house tracking link inside Full Circle, confirmed Nov 1 |
+| Full Circle route for an order's tracking pings | Open. Check the gateway spec, else ask Derek Comartin |
