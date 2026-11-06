@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SBS LTL Tools</title>
+<link rel="icon" type="image/png" href="icon-linear-feet.png">
+<style>
+  :root { --bg:#0f1b33; --card:#16264a; --line:#274487; --text:#ffffff; --muted:#afc0da; --accent:#f7871a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:Segoe UI, -apple-system, Roboto, sans-serif; }
+  main { max-width:960px; margin:0 auto; padding:40px 16px; }
+  h1 { margin:0 0 6px; font-size:28px; }
+  p.lead { margin:0 0 28px; color:var(--muted); }
+  .tools { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+  a.tool { display:block; padding:20px; background:var(--card); border:1px solid var(--line); border-radius:10px; color:var(--text); text-decoration:none; }
+  a.tool:hover, a.tool:focus { border-color:var(--accent); outline:none; }
+  a.tool strong { display:block; font-size:18px; margin-bottom:6px; }
+  a.tool span { color:var(--muted); font-size:14px; line-height:1.45; }
+  footer { margin-top:32px; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>SBS LTL Tools</h1>
+  <p class="lead">Class it, measure it, rate it. For a single freight line, the LTL Quick Check on the Power BI LTL tab is quicker.</p>
+  <div class="tools">
+    <a class="tool" href="nmfc-classifier.html"><strong>NMFC Freight Classifier</strong><span>Commodity search, density, NMFC item and sub, freight class and a BOL manifest.</span></a>
+    <a class="tool" href="linear-feet.html"><strong>Linear Ft Calculator</strong><span>Multi-line freight, stacking, trailer space and partial pricing. History stays in your own browser.</span></a>
+    <a class="tool" href="https://glb-portal.shipprimus.com/auth" target="_blank" rel="noopener"><strong>Rate in ShipPrimus</strong><span>Opens the ShipPrimus portal login in a new tab.</span></a>
+  </div>
+  <footer>Sterling Brokerage Services. Calculations run in your browser; nothing you type is sent anywhere.</footer>
+</main>
+</body>
+</html>
