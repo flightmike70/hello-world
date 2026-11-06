@@ -1,0 +1,2000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NMFC Freight Classification & Density Calculator</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom scrollbar for dropdowns and tables */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30 shadow-md no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-extrabold shadow-inner shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">NMFC Dock Classifier &amp; Density Pro</h1>
+            <span class="hidden sm:inline-block text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">LTL Reference Tool</span>
+          </div>
+          <p class="text-xs text-slate-400">Type commodity, weight &amp; dimensions to get instant NMFC code, sub-item &amp; freight class</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center gap-1 bg-slate-800/90 p-1 rounded-lg border border-slate-700/80 overflow-x-auto max-w-full">
+        <button type="button" id="tab-btn-calculator" data-tab="calculator" class="nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all bg-amber-500 text-slate-950 shadow-sm whitespace-nowrap flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          <span>Classifier &amp; Calculator</span>
+        </button>
+        <button type="button" id="tab-btn-manifest" data-tab="manifest" class="nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white hover:bg-slate-700/60 whitespace-nowrap flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span>BOL Manifest</span>
+          <span id="manifest-count-badge" class="ml-0.5 px-1.5 py-0.2 rounded-full text-[11px] bg-slate-700 text-slate-200 font-mono-code">0</span>
+        </button>
+        <button type="button" id="tab-btn-directory" data-tab="directory" class="nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white hover:bg-slate-700/60 whitespace-nowrap flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          <span>100 NMFC Directory</span>
+        </button>
+        <button type="button" id="tab-btn-scale" data-tab="scale" class="nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white hover:bg-slate-700/60 whitespace-nowrap flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+          <span>18-Class Scale &amp; Tips</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-5">
+
+    <!-- ==================== TAB 1: CALCULATOR & CLASSIFIER ==================== -->
+    <section id="view-calculator" class="space-y-6">
+
+      <!-- Quick Sample Presets Bar for Fast Testing on the Dock -->
+      <div class="bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-sm flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2 text-xs font-semibold text-slate-600">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>Quick Dock Scenarios:</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button type="button" data-preset="plastics" class="preset-scenario-btn text-xs px-2.5 py-1 rounded-md bg-slate-100 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 border border-slate-200 font-medium text-slate-700 transition">Molded Plastics (48×40×60", 420 lbs)</button>
+          <button type="button" data-preset="brakes" class="preset-scenario-btn text-xs px-2.5 py-1 rounded-md bg-slate-100 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 border border-slate-200 font-medium text-slate-700 transition">Auto Brake Rotors (48×40×36", 1,650 lbs)</button>
+          <button type="button" data-preset="machinery" class="preset-scenario-btn text-xs px-2.5 py-1 rounded-md bg-slate-100 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 border border-slate-200 font-medium text-slate-700 transition">Industrial Pump (48×42×48", 780 lbs)</button>
+          <button type="button" data-preset="furniture_su" class="preset-scenario-btn text-xs px-2.5 py-1 rounded-md bg-slate-100 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 border border-slate-200 font-medium text-slate-700 transition">Assembled Desk (64×36×34", 185 lbs)</button>
+          <button type="button" data-preset="reset" class="preset-scenario-btn text-xs px-2.5 py-1 rounded-md bg-rose-50 hover:bg-rose-100 border border-rose-200 font-medium text-rose-700 transition">Clear Form</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- LEFT COLUMN: INPUT CONTROLS (7 cols on large screens) -->
+        <div class="lg:col-span-7 space-y-5">
+
+          <!-- STEP 1: COMMODITY LOOKUP CARD -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="w-6 h-6 rounded-full bg-slate-900 text-amber-400 font-bold text-xs flex items-center justify-center">1</span>
+                <h2 class="text-sm sm:text-base font-bold text-slate-800">What is the Commodity?</h2>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" id="calc-open-import-btn" class="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-amber-400 transition">+ Add/Import Codes</button>
+                <span id="selected-mode-pill" class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">150+ NMFC Database Active</span>
+              </div>
+            </div>
+
+            <div class="p-5 space-y-4">
+              <!-- Search Input -->
+              <div>
+                <label for="commodity-search-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Type Commodity Name, Keyword, or NMFC Code
+                </label>
+                <div class="relative">
+                  <input
+                    type="text"
+                    id="commodity-search-input"
+                    placeholder="e.g., brake rotors, plastic articles, air compressor, ceramic tile, 156600..."
+                    autocomplete="off"
+                    class="w-full pl-10 pr-20 py-2.5 text-sm sm:text-base bg-white border-2 border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 font-medium text-slate-900 placeholder:text-slate-400 transition"
+                  />
+                  <svg class="w-5 h-5 text-slate-400 absolute left-3 top-3 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <button
+                    type="button"
+                    id="clear-commodity-btn"
+                    class="absolute right-2.5 top-2 px-2 py-1 text-xs font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded transition"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sector Filter Pills -->
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Filter by Category</span>
+                  <span id="match-count-label" class="text-xs font-medium text-slate-500">Showing top matches</span>
+                </div>
+                <div id="category-pills-container" class="flex items-center gap-1.5 overflow-x-auto pb-1.5">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+
+              <!-- Matching Commodities List (Scrollable Picker) -->
+              <div class="border border-slate-200 rounded-lg bg-slate-50/60 overflow-hidden">
+                <div id="commodity-results-list" class="max-h-60 overflow-y-auto divide-y divide-slate-200/80">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+
+              <!-- Selected Commodity Banner -->
+              <div id="selected-commodity-card" class="rounded-lg bg-amber-50/90 border border-amber-300 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-900 text-amber-400 font-mono-code" id="sel-nmfc-badge">NMFC #156600</span>
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-amber-200/80 text-amber-950" id="sel-cat-badge">Plastics &amp; Rubber</span>
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300" id="sel-type-badge">Density-Based</span>
+                  </div>
+                  <h3 class="text-sm font-bold text-slate-900" id="sel-desc-title">Plastic Articles or Products, NOI (Density-Based)</h3>
+                  <p class="text-xs text-slate-600" id="sel-notes-text">The most common density-tiered NMFC code in freight; applies across all molded plastics.</p>
+                </div>
+
+                <!-- Special Condition Selector (KD vs SU / Packaging modifier if applicable) -->
+                <div class="shrink-0 flex flex-col items-start sm:items-end justify-center gap-1 border-t sm:border-t-0 pt-2 sm:pt-0 border-amber-200">
+                  <label for="condition-modifier-select" class="text-[11px] font-semibold uppercase text-amber-900">Configuration / State</label>
+                  <select id="condition-modifier-select" class="text-xs font-semibold bg-white border border-amber-300 rounded-md px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <option value="standard">Standard Packaging (As Listed)</option>
+                    <option value="kd_nested">Knocked Down (KD) / Nested / Compressed</option>
+                    <option value="su_assembled">Set Up (SU) / Fully Assembled / Uncrated</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2: DIMENSIONS & WEIGHT CARD -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5">
+                <span class="w-6 h-6 rounded-full bg-slate-900 text-amber-400 font-bold text-xs flex items-center justify-center">2</span>
+                <h2 class="text-sm sm:text-base font-bold text-slate-800">Enter Weight &amp; Dimensions (Including Pallet)</h2>
+              </div>
+
+              <!-- Quick Pallet Footprint Buttons -->
+              <div class="flex items-center gap-1">
+                <span class="text-[11px] text-slate-500 mr-1 font-medium">Footprint:</span>
+                <button type="button" data-l="48" data-w="40" class="pallet-preset-btn text-xs px-2 py-0.5 rounded bg-slate-200/80 hover:bg-amber-500 hover:text-slate-950 font-mono-code font-semibold text-slate-700 transition">48×40</button>
+                <button type="button" data-l="48" data-w="48" class="pallet-preset-btn text-xs px-2 py-0.5 rounded bg-slate-200/80 hover:bg-amber-500 hover:text-slate-950 font-mono-code font-semibold text-slate-700 transition">48×48</button>
+                <button type="button" data-l="42" data-w="42" class="pallet-preset-btn text-xs px-2 py-0.5 rounded bg-slate-200/80 hover:bg-amber-500 hover:text-slate-950 font-mono-code font-semibold text-slate-700 transition">42×42</button>
+                <button type="button" data-l="96" data-w="48" class="pallet-preset-btn text-xs px-2 py-0.5 rounded bg-slate-200/80 hover:bg-amber-500 hover:text-slate-950 font-mono-code font-semibold text-slate-700 transition">96×48</button>
+              </div>
+            </div>
+
+            <div class="p-5 space-y-5">
+              <!-- Dimensions Grid (L x W x H) -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label for="input-length" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Length (Inches)
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="number"
+                      id="input-length"
+                      value="48"
+                      min="1"
+                      max="600"
+                      step="0.5"
+                      class="dim-input w-full pl-3.5 pr-10 py-2.5 text-lg font-bold font-mono-code bg-slate-50 border-2 border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500 text-slate-900"
+                    />
+                    <span class="absolute right-3 top-3 text-xs font-bold text-slate-400">in</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label for="input-width" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Width (Inches)
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="number"
+                      id="input-width"
+                      value="40"
+                      min="1"
+                      max="600"
+                      step="0.5"
+                      class="dim-input w-full pl-3.5 pr-10 py-2.5 text-lg font-bold font-mono-code bg-slate-50 border-2 border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500 text-slate-900"
+                    />
+                    <span class="absolute right-3 top-3 text-xs font-bold text-slate-400">in</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label for="input-height" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Height (Inches)
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="number"
+                      id="input-height"
+                      value="48"
+                      min="1"
+                      max="600"
+                      step="0.5"
+                      class="dim-input w-full pl-3.5 pr-10 py-2.5 text-lg font-bold font-mono-code bg-slate-50 border-2 border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500 text-slate-900"
+                    />
+                    <span class="absolute right-3 top-3 text-xs font-bold text-slate-400">in</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Weight, Handling Units, Packaging Type -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 border-t border-slate-100">
+                <div>
+                  <label for="input-weight" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Weight Per Unit (lbs)
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="number"
+                      id="input-weight"
+                      value="650"
+                      min="1"
+                      max="50000"
+                      step="1"
+                      class="dim-input w-full pl-3.5 pr-12 py-2.5 text-lg font-bold font-mono-code bg-slate-50 border-2 border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500 text-slate-900"
+                    />
+                    <span class="absolute right-3 top-3 text-xs font-bold text-slate-400">lbs</span>
+                  </div>
+                  <p class="text-[11px] text-slate-500 mt-1">Include pallet weight (~35–50 lbs)</p>
+                </div>
+
+                <div>
+                  <label for="input-qty" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Handling Units (Qty)
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="number"
+                      id="input-qty"
+                      value="1"
+                      min="1"
+                      max="999"
+                      step="1"
+                      class="dim-input w-full pl-3.5 pr-12 py-2.5 text-lg font-bold font-mono-code bg-slate-50 border-2 border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500 text-slate-900"
+                    />
+                    <span class="absolute right-3 top-3 text-xs font-bold text-slate-400">units</span>
+                  </div>
+                  <p class="text-[11px] text-slate-500 mt-1">Number of identical pallets/crates</p>
+                </div>
+
+                <div>
+                  <label for="input-packaging" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Packaging Type
+                  </label>
+                  <select
+                    id="input-packaging"
+                    class="w-full px-3 py-2.5 text-sm font-semibold bg-slate-50 border-2 border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500 text-slate-900 h-[48px]"
+                  >
+                    <option value="Pallets">Pallet / Skid</option>
+                    <option value="Crates">Wooden Crate</option>
+                    <option value="Cartons">Box / Corrugated Carton</option>
+                    <option value="Bundles">Bundle / Strapped</option>
+                    <option value="Drums">Drum / Pail</option>
+                    <option value="Rolls">Roll / Spool / Reel</option>
+                  </select>
+                  <p class="text-[11px] text-slate-500 mt-1">Appears on BOL line item</p>
+                </div>
+              </div>
+
+              <!-- Overhang & Tare Helper Bar -->
+              <div class="bg-slate-50 rounded-lg p-3 border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input type="checkbox" id="toggle-overhang" class="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 border-slate-300" />
+                  <div>
+                    <span class="text-xs font-bold text-slate-800">Simulate 2" Pallet Overhang on All Sides (+4" L &amp; W)</span>
+                    <span class="block text-[11px] text-slate-500">See how overhanging cartons affect W&amp;I laser scanner volume &amp; class</span>
+                  </div>
+                </label>
+
+                <button type="button" id="add-pallet-tare-btn" class="text-xs font-semibold px-2.5 py-1.5 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs transition">
+                  + Add 40 lb Pallet Tare
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: LIVE CLASSIFICATION & BOL OUTPUT (5 cols on large screens) -->
+        <div class="lg:col-span-5 space-y-5 lg:sticky lg:top-20">
+
+          <!-- Live Result Card -->
+          <div class="bg-slate-900 text-white rounded-xl shadow-lg border border-slate-800 overflow-hidden">
+            <div class="px-5 py-3.5 bg-slate-950/60 border-b border-slate-800 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Instant Classification Result</h2>
+              </div>
+              <span id="rate-tier-badge" class="text-xs font-bold px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Moderate Rate Tier
+              </span>
+            </div>
+
+            <div class="p-5 space-y-5">
+              <!-- Primary Output: NMFC Code & Recommended Freight Class -->
+              <div class="grid grid-cols-2 gap-3.5">
+                <div class="bg-slate-800/90 border border-slate-700 rounded-xl p-3.5 flex flex-col justify-between">
+                  <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">NMFC Item Code</span>
+                  <div class="my-1">
+                    <div id="result-nmfc-code" class="text-2xl sm:text-3xl font-extrabold font-mono-code text-amber-400 tracking-tight">156600</div>
+                    <div id="result-sub-item" class="text-xs font-semibold text-amber-200/90 mt-0.5 font-mono-code">Sub 8 (12–13.5 PCF)</div>
+                  </div>
+                  <span id="result-code-type" class="text-[11px] text-slate-400">Density-Tiered Item</span>
+                </div>
+
+                <div class="bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 rounded-xl p-3.5 flex flex-col justify-between shadow-md">
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-slate-900/80">Freight Class</span>
+                  <div class="my-1 flex items-baseline gap-1">
+                    <span class="text-xs font-extrabold uppercase">Class</span>
+                    <span id="result-freight-class" class="text-3xl sm:text-4xl font-black font-mono-code tracking-tight">85</span>
+                  </div>
+                  <span id="result-class-basis" class="text-[11px] font-bold text-slate-900/90">Matches Density &amp; Commodity</span>
+                </div>
+              </div>
+
+              <!-- Calculated Density & Volume Metrics Bar -->
+              <div class="grid grid-cols-3 gap-2.5 bg-slate-950/70 rounded-lg p-3 border border-slate-800">
+                <div>
+                  <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Density (PCF)</span>
+                  <span id="metric-density" class="text-base sm:text-lg font-bold font-mono-code text-white">12.50</span>
+                  <span class="text-[11px] text-slate-400">lbs/ft³</span>
+                </div>
+                <div class="border-l border-slate-800 pl-2.5">
+                  <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Total Volume</span>
+                  <span id="metric-volume" class="text-base sm:text-lg font-bold font-mono-code text-white">52.00</span>
+                  <span class="text-[11px] text-slate-400">cu ft</span>
+                </div>
+                <div class="border-l border-slate-800 pl-2.5">
+                  <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Total Weight</span>
+                  <span id="metric-total-weight" class="text-base sm:text-lg font-bold font-mono-code text-white">650</span>
+                  <span class="text-[11px] text-slate-400">lbs</span>
+                </div>
+              </div>
+
+              <!-- Explanation / Comparison Box (Pure Density Class vs Commodity Rule) -->
+              <div id="classification-explanation-box" class="rounded-lg bg-slate-800/70 border border-slate-700 p-3 text-xs space-y-1.5">
+                <div class="flex items-center justify-between text-slate-300">
+                  <span>Raw Density Class Bracket:</span>
+                  <span id="raw-density-class-label" class="font-mono-code font-bold text-white">Class 85 (12 – 13.5 PCF)</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-300">
+                  <span>Commodity Tariff Guideline:</span>
+                  <span id="commodity-guideline-label" class="font-mono-code font-bold text-amber-300">Class 60–400 (11 Subs)</span>
+                </div>
+                <p id="classification-rule-note" class="text-slate-300 pt-1 border-t border-slate-700/80 leading-relaxed">
+                  Rated directly by density under NMFC 156600.
+                </p>
+              </div>
+
+              <!-- Dock Optimization / Next Tier Tip + Visual Pallet Preview -->
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-slate-800/40 rounded-lg p-3 border border-slate-800">
+                <div class="sm:col-span-4 flex flex-col items-center justify-center bg-slate-950/60 rounded-lg p-2 border border-slate-800/80">
+                  <svg id="pallet-svg-preview" class="w-24 h-24" viewBox="0 0 120 120">
+                    <!-- Dynamic isometric pallet rendered by JS -->
+                  </svg>
+                  <span id="svg-dim-caption" class="text-[10px] font-mono-code text-slate-400 mt-0.5">48×40×48"</span>
+                </div>
+                <div class="sm:col-span-8 space-y-1.5">
+                  <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-xs font-bold text-amber-300">Dock Optimization &amp; W&amp;I Alert</span>
+                  </div>
+                  <p id="dock-optimization-tip" class="text-xs text-slate-300 leading-relaxed">
+                    Lowering height by 4" increases density to 13.6 PCF, qualifying for Class 77.5.
+                  </p>
+                  <div id="special-alerts-container" class="flex flex-wrap gap-1 pt-0.5">
+                    <!-- Overlength / Hazmat / Overhang badges injected here -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Ready-to-Use Bill of Lading (BOL) String & Action Buttons -->
+              <div class="space-y-2.5 pt-1">
+                <div class="flex items-center justify-between">
+                  <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Ready-to-Copy BOL Description Line</label>
+                  <span class="text-[11px] text-emerald-400 font-medium hidden" id="copied-feedback-badge">Copied!</span>
+                </div>
+                <div id="bol-preview-text" class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 font-mono-code text-xs text-slate-200 break-words select-all">
+                  1 Pallet | NMFC #156600 Sub 8 | Class 85 | Plastic Articles or Products, NOI | 48x40x48 in | 650 lbs (12.50 PCF)
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    id="copy-bol-btn"
+                    class="w-full py-2.5 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs sm:text-sm border border-slate-600 transition flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    <span>Copy BOL Line</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="add-to-manifest-btn"
+                    class="w-full py-2.5 px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-md"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    <span>Add to BOL Manifest</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: SHIPMENT BOL MANIFEST BUILDER ==================== -->
+    <section id="view-manifest" class="hidden space-y-5">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-200">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Multi-Pallet Shipment Manifest &amp; BOL Worksheet</h2>
+            <p class="text-xs text-slate-500">Build a multi-line LTL shipment from the calculator, verify total weight/cube, and print or copy for your Bill of Lading.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 no-print">
+            <button type="button" id="manifest-go-calc-btn" class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition">
+              + Classify Another Item
+            </button>
+            <button type="button" id="manifest-copy-all-btn" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition">
+              Copy Full Manifest Text
+            </button>
+            <button type="button" id="manifest-export-csv-btn" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition">
+              Export CSV
+            </button>
+            <button type="button" id="manifest-print-btn" class="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">
+              Print Worksheet
+            </button>
+            <button type="button" id="manifest-clear-btn" class="px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs transition">
+              Clear All
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
+          <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+            <span class="text-[11px] font-semibold uppercase text-slate-500">Total Handling Units</span>
+            <div id="manifest-total-units" class="text-2xl font-extrabold font-mono-code text-slate-900 mt-0.5">0</div>
+          </div>
+          <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+            <span class="text-[11px] font-semibold uppercase text-slate-500">Total Gross Weight</span>
+            <div id="manifest-total-weight" class="text-2xl font-extrabold font-mono-code text-slate-900 mt-0.5">0 lbs</div>
+          </div>
+          <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+            <span class="text-[11px] font-semibold uppercase text-slate-500">Total Cubic Volume</span>
+            <div id="manifest-total-cube" class="text-2xl font-extrabold font-mono-code text-slate-900 mt-0.5">0.00 ft³</div>
+          </div>
+          <div class="bg-amber-50 p-3.5 rounded-lg border border-amber-200">
+            <span class="text-[11px] font-semibold uppercase text-amber-900">Blended Density / Highest Class</span>
+            <div id="manifest-blended-summary" class="text-lg font-extrabold font-mono-code text-amber-950 mt-1">—</div>
+          </div>
+        </div>
+
+        <!-- Manifest Table -->
+        <div class="overflow-x-auto border border-slate-200 rounded-lg">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
+                <th class="py-2.5 px-3">Units</th>
+                <th class="py-2.5 px-3">NMFC &amp; Sub</th>
+                <th class="py-2.5 px-3">Class</th>
+                <th class="py-2.5 px-3">Commodity Description</th>
+                <th class="py-2.5 px-3">Dimensions (L×W×H)</th>
+                <th class="py-2.5 px-3">Volume</th>
+                <th class="py-2.5 px-3">Total Weight</th>
+                <th class="py-2.5 px-3">Density</th>
+                <th class="py-2.5 px-3 text-right no-print">Action</th>
+              </tr>
+            </thead>
+            <tbody id="manifest-table-body" class="divide-y divide-slate-200 text-xs sm:text-sm">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: 100 NMFC DIRECTORY ==================== -->
+    <section id="view-directory" class="hidden space-y-5">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">The 100 Most Prevalent NMFC Item Codes Directory</h2>
+            <p class="text-xs text-slate-500">Search or filter by industry sector. Click <strong>"Load in Calculator"</strong> on any item to rate a pallet immediately.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              id="directory-search-input"
+              placeholder="Search code, commodity, or notes..."
+              class="px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 w-60"
+            />
+            <select id="directory-category-select" class="px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-amber-500">
+              <option value="ALL">All Industry Categories</option>
+            </select>
+            <button type="button" id="open-import-modal-btn" class="px-3 py-2 text-xs sm:text-sm font-bold rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-400 border border-slate-800 transition flex items-center gap-1.5">
+              <span>+ Add / Import Custom NMFC Codes</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto border border-slate-200 rounded-lg">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
+                <th class="py-2.5 px-3">#</th>
+                <th class="py-2.5 px-3">NMFC Code</th>
+                <th class="py-2.5 px-3">Category</th>
+                <th class="py-2.5 px-3">Commodity Description</th>
+                <th class="py-2.5 px-3">Typical / Base Class</th>
+                <th class="py-2.5 px-3">Packaging &amp; Classification Notes</th>
+                <th class="py-2.5 px-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="directory-table-body" class="divide-y divide-slate-200 text-xs sm:text-sm">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: 18-CLASS SCALE & DOCK TIPS ==================== -->
+    <section id="view-scale" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Official 18-Class NMFC Density Scale</h2>
+            <p class="text-xs text-slate-500">Standardized density brackets (lbs per cubic foot) and typical commodity examples. The highlighted row shows where your current calculator dimensions fall.</p>
+          </div>
+
+          <div class="overflow-x-auto border border-slate-200 rounded-lg">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-100 text-slate-600 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
+                  <th class="py-2.5 px-3">Freight Class</th>
+                  <th class="py-2.5 px-3">Minimum Density (PCF)</th>
+                  <th class="py-2.5 px-3">11-Sub Tier</th>
+                  <th class="py-2.5 px-3">Typical Commodity Examples</th>
+                  <th class="py-2.5 px-3">Rate Tier</th>
+                </tr>
+              </thead>
+              <tbody id="scale-table-body" class="divide-y divide-slate-200 text-xs sm:text-sm">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 space-y-4">
+          <div class="bg-slate-900 text-white rounded-xl p-5 border border-slate-800 space-y-3">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">Dock Crew Cheat Sheet: Avoiding W&amp;I Re-Class Fees</h3>
+            <ul class="space-y-2.5 text-xs text-slate-300 leading-relaxed">
+              <li class="flex items-start gap-2">
+                <span class="font-bold text-amber-400">1.</span>
+                <span><strong>Always Measure Extreme Points:</strong> Carrier overhead laser dimensioners scan from the floor to the highest carton corner and outermost overhang edge.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="font-bold text-amber-400">2.</span>
+                <span><strong>Eliminate Pallet Overhang:</strong> A 2-inch overhang on a 48×40" skid turns the billing footprint into 52×44", adding 19% more cubic volume and dropping PCF.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="font-bold text-amber-400">3.</span>
+                <span><strong>Include Skid Tare Weight:</strong> Always weigh the shipment on the pallet. Adding 40–50 lbs of wood pallet weight increases density and can keep a borderline load in a lower class.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="font-bold text-amber-400">4.</span>
+                <span><strong>Write Both NMFC &amp; Sub-Item:</strong> On density-tiered items (like 156600 or 114000), omitting the Sub number triggers automatic carrier inspection audits.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="font-bold text-amber-400">5.</span>
+                <span><strong>Declare KD (Knocked Down) When Flat:</strong> Disassembled furniture or shelving packed flat qualifies for Class 70–85 instead of Class 150–250 when Set Up (SU).</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-2.5">
+            <h3 class="text-sm font-bold text-slate-900">Key Formulas Used</h3>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 font-mono-code text-xs space-y-1.5">
+              <div><strong>Volume (ft³)</strong> = (L × W × H) ÷ 1,728</div>
+              <div><strong>Density (PCF)</strong> = Weight (lbs) ÷ Volume (ft³)</div>
+            </div>
+            <p class="text-xs text-slate-500">1 cubic foot = 1,728 cubic inches (12" × 12" × 12").</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Custom NMFC Code / CSV Bulk Import Modal -->
+  <div id="import-modal-backdrop" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden">
+      <div class="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
+        <div>
+          <h3 class="text-sm sm:text-base font-bold">Add or Bulk-Import Custom NMFC Codes</h3>
+          <p class="text-xs text-slate-400">Add your company's specific SKUs or paste a CSV export from your broker / ClassIT</p>
+        </div>
+        <button type="button" id="close-import-modal-btn" class="text-slate-400 hover:text-white text-sm font-bold px-2 py-1 rounded">✕</button>
+      </div>
+
+      <div class="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
+        <!-- Single Item Quick Add -->
+        <div class="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">1. Add a Single NMFC Code / Company SKU</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">NMFC Code</label>
+              <input type="text" id="custom-add-code" placeholder="e.g., 84120" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-md font-mono-code" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Category / Sector</label>
+              <input type="text" id="custom-add-cat" placeholder="e.g., Consumer & Sports" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-md" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Rating Mode &amp; Class</label>
+              <select id="custom-add-mode" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-md bg-white">
+                <option value="density_11">11/13-Sub Full Density Scale</option>
+                <option value="50">Fixed Class 50</option>
+                <option value="55">Fixed Class 55</option>
+                <option value="60">Fixed Class 60</option>
+                <option value="65">Fixed Class 65</option>
+                <option value="70">Fixed Class 70</option>
+                <option value="77.5">Fixed Class 77.5</option>
+                <option value="85">Fixed Class 85</option>
+                <option value="92.5">Fixed Class 92.5</option>
+                <option value="100">Fixed Class 100</option>
+                <option value="110">Fixed Class 110</option>
+                <option value="125">Fixed Class 125</option>
+                <option value="150">Fixed Class 150</option>
+                <option value="175">Fixed Class 175</option>
+                <option value="200">Fixed Class 200</option>
+                <option value="250">Fixed Class 250</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Commodity Description / SKU Name</label>
+              <input type="text" id="custom-add-desc" placeholder="e.g., Video Game Consoles in Master Cartons" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-md" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Packaging / Search Keywords</label>
+              <input type="text" id="custom-add-notes" placeholder="e.g., Boxed on pallets; ps5 xbox switch" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-md" />
+            </div>
+          </div>
+          <div class="flex justify-end">
+            <button type="button" id="save-single-custom-btn" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">
+              + Save Item to Directory
+            </button>
+          </div>
+        </div>
+
+        <!-- Bulk CSV Paste / Upload -->
+        <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">2. Bulk Paste CSV Rows (Code, Description, Category, Class, Notes)</h4>
+          <p class="text-xs text-slate-500">Paste unlimited rows from Excel or your TMS (`NMFC Code, Commodity Description, Category, Class or DENSITY, Notes`):</p>
+          <textarea
+            id="bulk-csv-textarea"
+            rows="4"
+            placeholder="84120, Video Games & Consoles NOI, Electronics, DENSITY, Boxed on skids&#10;84180, Arcade Game Cabinets Coin-Op, Consumer & Sports, 125, Crated upright"
+            class="w-full p-2.5 text-xs font-mono-code border border-slate-300 rounded-md focus:outline-none focus:border-amber-500"
+          ></textarea>
+          <div class="flex items-center justify-between gap-2">
+            <span id="custom-count-status" class="text-xs text-slate-500">Custom codes saved in browser</span>
+            <button type="button" id="import-bulk-csv-btn" class="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition">
+              Import CSV Rows
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 pointer-events-none transition-all duration-300 opacity-0 translate-y-2">
+    <div class="bg-slate-900 text-white px-4 py-2.5 rounded-lg shadow-xl border border-slate-700 flex items-center gap-2.5 text-xs sm:text-sm font-semibold">
+      <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+      <span id="toast-message">Action completed</span>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. COMPLETE 100 NMFC COMMODITY DATASET & 18-CLASS DENSITY TABLE
+    // =========================================================================
+    const NMFC_ITEMS = [
+      // 1. Automotive & Transportation Equipment (1-12)
+      { id: 1, code: "18260", desc: "Automobile Parts, NOI, Iron or Steel", cat: "Automotive", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "Boxed or crated; common for standard cast or stamped steel automotive replacement parts.", keywords: "auto car truck steel iron replacement parts brackets mounts" },
+      { id: 2, code: "18450", desc: "Automobile Body Parts or Panels (Fenders, Hoods, Doors)", cat: "Automotive", classStr: "Class 150–200", minClass: 150, maxClass: 200, mode: "bracket", hazmat: false, notes: "Bulky and susceptible to bending/scratching; rated based on density and crating.", keywords: "auto body panels fenders hoods doors quarter panel trunk lid sheet metal" },
+      { id: 3, code: "18690", desc: "Brakes, Brake Shoes, Drums, Disc Rotors", cat: "Automotive", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "High density, palletized/boxed; standard iron and semi-metallic friction components.", keywords: "brakes pads calipers rotors drums shoes stopping automotive" },
+      { id: 4, code: "19160", desc: "Automobile Engines, Internal Combustion (Finished)", cat: "Automotive", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: false, notes: "Must be drained of fluids (oil/coolant); securely crated or banded to heavy pallets.", keywords: "motor engine block crate v8 v6 diesel gas cylinder head powertrain" },
+      { id: 5, code: "19640", desc: "Transmissions or Transmission Assemblies", cat: "Automotive", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: false, notes: "Must be fully drained of transmission fluid; crated or securely skidded.", keywords: "gearbox transaxle clutch automatic manual drivetrain" },
+      { id: 6, code: "19800", desc: "Automobile Wheels, Steel or Iron", cat: "Automotive", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "Boxed or banded to pallets; standard commercial and passenger vehicle steel rims.", keywords: "rims truck wheels steel dually" },
+      { id: 7, code: "19820", desc: "Automobile Wheels, Aluminum or Alloy", cat: "Automotive", classStr: "Class 85–100", minClass: 85, maxClass: 100, mode: "bracket", hazmat: false, notes: "Requires individual protective boxing or face wrapping to prevent rim cosmetic damage.", keywords: "alloy rims chrome wheels custom mag wheels" },
+      { id: 8, code: "157320", desc: "Tires, Pneumatic, Rubber (Passenger / Commercial Truck)", cat: "Automotive", classStr: "Class 77.5", minClass: 77.5, maxClass: 77.5, mode: "fixed", hazmat: false, notes: "Stacked, laced, or palletized; specific sub-items apply to loose vs. bundled tires.", keywords: "tires rubber radial winter all season semi truck tires" },
+      { id: 9, code: "157230", desc: "Tire Treads, Rubber Retread Strips", cat: "Automotive", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Rolled and boxed or strapped to pallets; industrial retreading material.", keywords: "retreads recaps rubber strips camelback" },
+      { id: 10, code: "18000", desc: "Axles, Automobile or Truck (with or without gearings)", cat: "Automotive", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "Heavy steel construction, secured to specialized skids or cradles.", keywords: "rear axle differential drive shaft trailer axle" },
+      { id: 11, code: "18800", desc: "Automobile Bumpers, Plastic or Steel", cat: "Automotive", classStr: "Class 150–200", minClass: 150, maxClass: 200, mode: "bracket", hazmat: false, notes: "Low density, awkward shape; requires extensive cushioning and crating.", keywords: "front bumper rear fascia Grille guard" },
+      { id: 12, code: "19280", desc: "Radiators, Engine Cooling, Aluminum or Copper", cat: "Automotive", classStr: "Class 85–100", minClass: 85, maxClass: 100, mode: "bracket", hazmat: false, notes: "Fragile fins susceptible to puncture; boxed with interior foam supports.", keywords: "cooling heat exchanger intercooler condenser core" },
+
+      // 2. Industrial Machinery, Pumps & Motors (13-24)
+      { id: 13, code: "114000", desc: "Machinery or Machines, NOI", cat: "Industrial Machinery", classStr: "Class 70–125 (Density)", minClass: 60, maxClass: 400, mode: "density_11", hazmat: false, notes: "The primary catch-all for industrial machinery; 11 density sub-classes apply.", keywords: "industrial machine equipment cnc press lathe mill packaging machine" },
+      { id: 14, code: "115700", desc: "Pumps, Power, Water, Chemical or Hydraulic, NOI", cat: "Industrial Machinery", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: false, notes: "Cast iron or stainless construction; must be fully drained and skid-mounted.", keywords: "centrifugal pump sump pump slurry hydraulic fluid" },
+      { id: 15, code: "116640", desc: "Valves, Iron, Steel, or Brass, NOI", cat: "Industrial Machinery", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "Boxed or palletized; heavy gate, ball, and check valves for industrial piping.", keywords: "ball valve butterfly gate check valve actuator manifold" },
+      { id: 16, code: "118400", desc: "Hand Tools, Non-Power (Wrenches, Hammers, Pliers)", cat: "Tools & Hardware", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Boxed in heavy master cartons; high-density retail or industrial distribution.", keywords: "sockets screwdrivers mechanics tools spanners" },
+      { id: 17, code: "118420", desc: "Power Tools, Hand-Held, Electric or Pneumatic", cat: "Tools & Hardware", classStr: "Class 85–92.5", minClass: 85, maxClass: 92.5, mode: "bracket", hazmat: false, notes: "Drills, saws, grinders; individual retail packaging packed into master cartons.", keywords: "cordless drill circular saw impact driver air wrench sander" },
+      { id: 18, code: "120800", desc: "Compressors, Air or Gas (Portable or Stationary)", cat: "Industrial Machinery", classStr: "Class 70–92.5", minClass: 70, maxClass: 92.5, mode: "bracket", hazmat: false, notes: "Must be drained of oil/moisture; secured to skid with protective framing.", keywords: "air compressor rotary screw shop tank pneumatic" },
+      { id: 19, code: "122200", desc: "Electric Motors or Generators, NOI", cat: "Industrial Machinery", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Heavy copper winding and iron casing; high density, bolted to pallet base.", keywords: "ac motor dc stator rotor alternator genset" },
+      { id: 20, code: "123400", desc: "Transformers, Electric, Distribution or Power", cat: "Industrial Machinery", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: false, notes: "Oil-filled units must meet non-spillable/empty hazmat certifications.", keywords: "step down transformer utility voltage substation" },
+      { id: 21, code: "125600", desc: "Conveyors or Conveyor Sections, Belt or Roller", cat: "Industrial Machinery", classStr: "Class 92.5–125", minClass: 92.5, maxClass: 125, mode: "bracket", hazmat: false, notes: "Long freight rules may apply; crated or skid-mounted sections.", keywords: "material handling roller bed belt conveyor warehouse" },
+      { id: 22, code: "126200", desc: "Bearings, Ball or Roller, Steel, in Boxes", cat: "Industrial Machinery", classStr: "Class 60–65", minClass: 60, maxClass: 65, mode: "bracket", hazmat: false, notes: "Very dense precision parts; packed in grease wrap and corrugated cartons.", keywords: "pillow block tapered roller bearing bushing" },
+      { id: 23, code: "127000", desc: "Gears, Iron, Steel, or Bronze, Speed Reducers", cat: "Industrial Machinery", classStr: "Class 65–70", minClass: 65, maxClass: 70, mode: "bracket", hazmat: false, notes: "Heavy precision machining; boxed and banded to heavy-duty pallets.", keywords: "sprockets pinions gearbox worm gear" },
+      { id: 24, code: "133400", desc: "Welding Machines, Arc, MIG, TIG, or Plasma Cutters", cat: "Industrial Machinery", classStr: "Class 85–100", minClass: 85, maxClass: 100, mode: "bracket", hazmat: false, notes: "Fragile electronics and heavy transformers; crated or securely palletized.", keywords: "welder fabricator torch miller lincoln" },
+
+      // 3. Metals, Fasteners & Structural Raw Materials (25-36)
+      { id: 25, code: "104500", desc: "Steel or Iron Plates, Sheets, Bars, or Billets", cat: "Metals & Hardware", classStr: "Class 50", minClass: 50, maxClass: 50, mode: "fixed", hazmat: false, notes: "Extreme density exceeding 50 PCF; banded securely to skids or blocking.", keywords: "flat stock metal sheet steel coil rebar" },
+      { id: 26, code: "104600", desc: "Steel Tubing or Pipe, Iron or Steel, NOI", cat: "Metals & Hardware", classStr: "Class 55–65", minClass: 55, maxClass: 65, mode: "bracket", hazmat: false, notes: "Bundled or crated; length over 8 feet may trigger carrier over-length accessorials.", keywords: "conduit hollow structural section pipe schedule 40" },
+      { id: 27, code: "105200", desc: "Bolts, Nuts, Screws, Washers, Rivets, Iron or Steel", cat: "Metals & Hardware", classStr: "Class 50", minClass: 50, maxClass: 50, mode: "fixed", hazmat: false, notes: "Standard heavy hardware; packaged in small boxes banded to pallets (>50 PCF).", keywords: "fasteners nails anchors threaded rod hardware" },
+      { id: 28, code: "106000", desc: "Wire, Iron or Steel, Plain or Galvanized, in Coils", cat: "Metals & Hardware", classStr: "Class 55", minClass: 55, maxClass: 55, mode: "fixed", hazmat: false, notes: "Spools or coils secured to pallets; dense metal stock.", keywords: "baling wire tie wire fencing wire spool" },
+      { id: 29, code: "103200", desc: "Aluminum Sheet, Plate, Rod, or Structural Shapes", cat: "Metals & Hardware", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "Lighter than steel; interleaved to prevent surface gouging and moisture stains.", keywords: "aluminum extrusions angle bar treadplate" },
+      { id: 30, code: "104100", desc: "Fencing, Chain Link, Steel Mesh, Rolled", cat: "Metals & Hardware", classStr: "Class 60–65", minClass: 60, maxClass: 65, mode: "bracket", hazmat: false, notes: "Tightly rolled and banded; high stowability and density.", keywords: "wire mesh welded wire security fence" },
+      { id: 31, code: "107300", desc: "Roofing Shingles, Asphalt or Composition", cat: "Building Materials", classStr: "Class 55", minClass: 55, maxClass: 55, mode: "fixed", hazmat: false, notes: "Bundled on pallets with shrink-wrap; high-density building product.", keywords: "roofing tar paper underlayment shingles" },
+      { id: 32, code: "107500", desc: "Insulation, Mineral Wool, Glass Fiber, Batts or Rolls", cat: "Building Materials", classStr: "Class 250–400", minClass: 250, maxClass: 400, mode: "bracket", hazmat: false, notes: "Extremely lightweight and bulky; low density drives highest class rating tiers.", keywords: "fiberglass insulation foam board rockwool thermal" },
+      { id: 33, code: "158500", desc: "Pipe Fittings, Iron, Steel, or Malleable Iron, Boxed", cat: "Metals & Hardware", classStr: "Class 50–60", minClass: 50, maxClass: 60, mode: "bracket", hazmat: false, notes: "Elbows, tees, unions; high density in master cartons on pallets.", keywords: "flanges couplings plumbing fittings" },
+      { id: 34, code: "51220", desc: "Castings, Iron or Steel, in the Rough", cat: "Metals & Hardware", classStr: "Class 50", minClass: 50, maxClass: 50, mode: "fixed", hazmat: false, notes: "Unmachined metal parts; highly durable, high density exceeding 50 PCF.", keywords: "foundry cast iron raw castings" },
+      { id: 35, code: "52400", desc: "Forgings, Iron or Steel, Rough or Semi-Finished", cat: "Metals & Hardware", classStr: "Class 50", minClass: 50, maxClass: 50, mode: "fixed", hazmat: false, notes: "Heavy solid forged industrial parts; palletized and banded.", keywords: "drop forged steel blanks" },
+      { id: 36, code: "104800", desc: "Steel Wire Rope or Cable, on Reels/Spools", cat: "Metals & Hardware", classStr: "Class 55–60", minClass: 55, maxClass: 60, mode: "bracket", hazmat: false, notes: "Heavy wooden reels blocked and chocked to prevent rolling during linehaul.", keywords: "winch cable crane rope rigging sling" },
+
+      // 4. Building Products, Flooring, Masonry & Plumbing (37-48)
+      { id: 37, code: "34100", desc: "Brick, Building, Paving, or Refractory, Clay/Concrete", cat: "Building Materials", classStr: "Class 50", minClass: 50, maxClass: 50, mode: "fixed", hazmat: false, notes: "Extremely dense; banded to pallets with corner protectors.", keywords: "masonry firebrick clay pavers" },
+      { id: 38, code: "34200", desc: "Cement, Mortar, Grout, Dry Mix in Multi-Wall Bags", cat: "Building Materials", classStr: "Class 50–55", minClass: 50, maxClass: 55, mode: "bracket", hazmat: false, notes: "Bags stacked on pallets with stretch hood/wrap to prevent moisture ingress.", keywords: "portland cement concrete mix thinset plaster" },
+      { id: 39, code: "34320", desc: "Concrete Products, Pavers, Slabs, Precast Blocks", cat: "Building Materials", classStr: "Class 50", minClass: 50, maxClass: 50, mode: "fixed", hazmat: false, notes: "Heavy masonry products; maximum weight per skid often limits pallet height.", keywords: "cinder blocks retaining wall stone patio blocks" },
+      { id: 40, code: "182100", desc: "Tile, Ceramic, Porcelain, Quarry, or Clay (Glazed/Unglazed)", cat: "Building Materials", classStr: "Class 65", minClass: 65, maxClass: 65, mode: "fixed", hazmat: false, notes: "Boxed and palletized; dense but brittle, requires edge protectors.", keywords: "floor tile wall subway tile mosaic" },
+      { id: 41, code: "182300", desc: "Stone Slabs, Granite, Marble, Engineered Quartz", cat: "Building Materials", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "Must be secured vertically on specialized A-frames or crated to prevent snapping.", keywords: "countertops travertine limestone slate" },
+      { id: 42, code: "112100", desc: "Lumber, Hardwood Flooring, Finished, Tongue & Groove", cat: "Building Materials", classStr: "Class 55–65", minClass: 55, maxClass: 65, mode: "bracket", hazmat: false, notes: "Bundled in protective cartons; shrink-wrapped to rigid skids.", keywords: "oak flooring maple planks wood boards" },
+      { id: 43, code: "112400", desc: "Plywood, OSB, Wood Particle Board, Sheets", cat: "Building Materials", classStr: "Class 55–65", minClass: 55, maxClass: 65, mode: "bracket", hazmat: false, notes: "Flat strapped bundles with wooden bottom skids; uniform rectangular stowability.", keywords: "mdf sheathing subfloor lumber panels" },
+      { id: 44, code: "158900", desc: "Plumbing Fixtures, Vitreous China (Sinks, Toilets)", cat: "Building Materials", classStr: "Class 77.5–100", minClass: 77.5, maxClass: 100, mode: "bracket", hazmat: false, notes: "Fragile ceramic; requires foam cushioning inside heavy corrugated cartons.", keywords: "lavatory commode urinal porcelain bathroom" },
+      { id: 45, code: "159100", desc: "Plumbing Goods, Brass or Bronze (Faucets, Mixers)", cat: "Building Materials", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Boxed in retail packaging inside corrugated master cartons.", keywords: "showerhead drain assembly plumbing hardware" },
+      { id: 46, code: "159300", desc: "Bathtubs or Shower Enclosures, Acrylic or Fiberglass", cat: "Building Materials", classStr: "Class 150–250", minClass: 150, maxClass: 250, mode: "bracket", hazmat: false, notes: "Lightweight, bulky hollow construction; requires heavy-duty crating.", keywords: "jacuzzi whirlpool tub shower pan" },
+      { id: 47, code: "53500", desc: "Water Heaters, Storage, Gas or Electric", cat: "Building Materials", classStr: "Class 110–125", minClass: 110, maxClass: 125, mode: "bracket", hazmat: false, notes: "Individual corrugated cartons strapped to skids; vulnerable to denting.", keywords: "boiler hot water tank tankless" },
+      { id: 48, code: "68200", desc: "Doors, Wooden or Composite, Exterior or Interior", cat: "Building Materials", classStr: "Class 85–125", minClass: 85, maxClass: 125, mode: "bracket", hazmat: false, notes: "Crated or palletized flat; glass inserts increase class rating to 110–125.", keywords: "entry door slab prehung hollow core" },
+
+      // 5. Electrical, Electronics & Telecommunications (49-58)
+      { id: 49, code: "61680", desc: "Computers, Data Processing Units, Rackmount Servers", cat: "Electronics", classStr: "Class 92.5–125", minClass: 92.5, maxClass: 125, mode: "bracket", hazmat: false, notes: "High value per pound; requires anti-static wrap, foam dunnage, tip-n-tell monitors.", keywords: "it equipment laptops workstations network switches data center" },
+      { id: 50, code: "61700", desc: "Monitors, Computer Screens, Flat Panel Televisions", cat: "Electronics", classStr: "Class 150–200", minClass: 150, maxClass: 200, mode: "bracket", hazmat: false, notes: "High liability and fragility; must remain upright; original factory carton required.", keywords: "led tv lcd display digital signage" },
+      { id: 51, code: "61200", desc: "Printed Circuit Boards (PCBs) or Subassemblies", cat: "Electronics", classStr: "Class 100", minClass: 100, maxClass: 100, mode: "fixed", hazmat: false, notes: "Static-shielded, moisture barrier bags, packed in heavy-duty outer cartons.", keywords: "motherboards semiconductors microchips" },
+      { id: 52, code: "62820", desc: "Wire, Copper, Insulated, Electric Power or Telecom Cable", cat: "Electrical", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "Heavy wooden spools or boxed reels; high copper density.", keywords: "romex thhn coaxial cat6 ethernet cable" },
+      { id: 53, code: "63000", desc: "Conduit, Electrical, Metallic (EMT/Rigid) or PVC Pipe", cat: "Electrical", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "Bundled 10-ft lengths; requires mechanical handling and over-length awareness.", keywords: "raceway electrical tubing pvc conduit" },
+      { id: 54, code: "63100", desc: "Electrical Switchgear, Circuit Breakers, Panelboards", cat: "Electrical", classStr: "Class 85–110", minClass: 85, maxClass: 110, mode: "bracket", hazmat: false, notes: "Precision electrical components; crated and protected against moisture/vibration.", keywords: "load center fuse box disconnect switch mcc" },
+      { id: 55, code: "63500", desc: "Batteries, Electric Storage, Wet, Filled with Acid (Lead-Acid)", cat: "Electrical / HAZMAT", classStr: "Class 65–70", minClass: 65, maxClass: 70, mode: "bracket", hazmat: true, notes: "DOT Hazmat regulations apply (UN2794/UN2795); strapped to chemical-resistant pallets.", keywords: "car battery forklift battery agm corrosive hazmat" },
+      { id: 56, code: "60680", desc: "Batteries, Dry Cell or Lithium-Ion, NOI", cat: "Electrical / HAZMAT", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: true, notes: "Subject to 49 CFR Lithium Battery regulations; UN3480/UN3481 labels required.", keywords: "alkaline lithium battery pack ups power bank" },
+      { id: 57, code: "109280", desc: "Lighting Fixtures, Fluorescent, Architectural or LED Commercial", cat: "Electrical", classStr: "Class 100–150", minClass: 100, maxClass: 150, mode: "bracket", hazmat: false, notes: "Bulky fixtures with optical diffusers; density-based ratings often apply.", keywords: "troffers high bay lights sconces chandeliers" },
+      { id: 58, code: "109400", desc: "Lamps / Light Bulbs, LED, Incandescent or Fluorescent", cat: "Electrical", classStr: "Class 125–200", minClass: 125, maxClass: 200, mode: "bracket", hazmat: false, notes: "Fragile glass construction; requires crush-resistant master packaging.", keywords: "bulbs tubes halogen floodlights" },
+
+      // 6. Plastics, Rubber & Chemicals (59-70)
+      { id: 59, code: "156600", desc: "Plastic Articles or Products, NOI (Density-Based)", cat: "Plastics & Rubber", classStr: "Class 60–400 (11 Subs)", minClass: 60, maxClass: 400, mode: "density_11", hazmat: false, notes: "The most common density-tiered NMFC code in freight; applies across all molded plastics.", keywords: "molded plastic bins totes housings injection molded parts" },
+      { id: 60, code: "156200", desc: "Plastic Sheets, Rods, Tubes, or Extruded Shapes", cat: "Plastics & Rubber", classStr: "Class 70–125", minClass: 70, maxClass: 125, mode: "bracket", hazmat: false, notes: "Flat sheets banded to pallets; tubes/rods bundled; density determines sub-item.", keywords: "acrylic plexiglass polycarbonate hdpe pvc sheet" },
+      { id: 61, code: "156400", desc: "Plastic Containers, Bottles, Cans, Carboys (Empty)", cat: "Plastics & Rubber", classStr: "Class 200–300", minClass: 200, maxClass: 300, mode: "bracket", hazmat: false, notes: "Extremely lightweight and hollow; nested vs. non-nested determines sub-class.", keywords: "jugs jars buckets blow molded bottles" },
+      { id: 62, code: "156800", desc: "Plastic Film, Sheeting, or Stretch Wrap, Rolls", cat: "Plastics & Rubber", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Heavy solid rolls suspended on core plugs or boxed on pallets.", keywords: "shrink wrap polyethylene film poly bags pallet wrap" },
+      { id: 63, code: "157300", desc: "Rubber Articles or Molded Rubber Goods, NOI", cat: "Plastics & Rubber", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: false, notes: "Gaskets, grommets, industrial bumpers, molded pads; dense and durable.", keywords: "o-rings hoses rubber mats seals" },
+      { id: 64, code: "43940", desc: "Chemicals, NOI, Liquid or Dry, Non-Hazardous", cat: "Chemicals", classStr: "Class 60–77.5", minClass: 60, maxClass: 77.5, mode: "bracket", hazmat: false, notes: "Standard industrial chemicals in pails, drums, or multi-ply bags on pallets.", keywords: "industrial compounds reagents non-hazmat" },
+      { id: 65, code: "44100", desc: "Cleaning Compounds, Detergents, Soaps, Liquid or Powder", cat: "Chemicals", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "Cases of bottles, jugs, or 55-gallon drums; liquid spill containment required.", keywords: "degreaser bleach laundry detergent janitorial supplies" },
+      { id: 66, code: "44500", desc: "Paints, Stains, or Varnishes, Non-Flammable, Water-Based", cat: "Chemicals", classStr: "Class 65–70", minClass: 65, maxClass: 70, mode: "bracket", hazmat: false, notes: "Latex/acrylic paints in cans packed in master boxes, stretch-wrapped to pallets.", keywords: "latex paint primer interior coating" },
+      { id: 67, code: "44510", desc: "Paints or Stains, Flammable Liquid (Solvent/Oil-Based)", cat: "Chemicals / HAZMAT", classStr: "Class 65–77.5", minClass: 65, maxClass: 77.5, mode: "bracket", hazmat: true, notes: "Requires DOT Hazmat shipping papers, placarding (Class 3 Flammable), and spill trays.", keywords: "enamel lacquer thinner solvent un1263 hazmat" },
+      { id: 68, code: "45600", desc: "Adhesives, Glues, Sealants, Caulking Compounds, NOI", cat: "Chemicals", classStr: "Class 65–70", minClass: 65, maxClass: 70, mode: "bracket", hazmat: false, notes: "Cartridges, pails, or drums; subject to freeze-protect requirements in winter.", keywords: "epoxy silicone mastic wood glue" },
+      { id: 69, code: "46200", desc: "Resins, Synthetic, Polyethylene/Polypropylene Pellets", cat: "Chemicals", classStr: "Class 55–65", minClass: 55, maxClass: 65, mode: "bracket", hazmat: false, notes: "Bulk dry pellets in 50-lb multi-wall bags or gaylord boxes on pallets.", keywords: "nurdles plastic resin granules raw polymer" },
+      { id: 70, code: "46030", desc: "Wax, Petroleum or Paraffin, Slabs or Flakes", cat: "Chemicals", classStr: "Class 65–70", minClass: 65, maxClass: 70, mode: "bracket", hazmat: false, notes: "Boxed slabs or bagged flakes on pallets; keep away from heat sources.", keywords: "candle wax soy wax coating wax" },
+
+      // 7. Furniture, Fixtures & Consumer Household Goods (71-80)
+      { id: 71, code: "79000", desc: "Furniture, Commercial or Residential, KD (Knocked Down Flat)", cat: "Furniture", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: false, notes: "Flat-pack boxed furniture (RTA); significantly denser and cheaper than assembled.", keywords: "flat pack ikea style tables bookcases knocked down" },
+      { id: 72, code: "79020", desc: "Furniture, Wooden or Metal, SU (Set-Up / Assembled), NOI", cat: "Furniture", classStr: "Class 150–250", minClass: 150, maxClass: 250, mode: "bracket", hazmat: false, notes: "High cubage, low density, high damage rate; requires blanket-wrap or heavy crating.", keywords: "sofa couch dresser armoire assembled table" },
+      { id: 73, code: "79200", desc: "Chairs, Dining, Office, or Side, Stacked or Boxed", cat: "Furniture", classStr: "Class 100–175", minClass: 100, maxClass: 175, mode: "bracket", hazmat: false, notes: "Nesting/stacking lowers class to 100; individual assembled chairs rate Class 150–175.", keywords: "task chair barstool seating" },
+      { id: 74, code: "79400", desc: "Desks, Office Credenzas, Workstations, Assembled", cat: "Furniture", classStr: "Class 125–200", minClass: 125, maxClass: 200, mode: "bracket", hazmat: false, notes: "Large footprint, low density; requires corner protectors and shrink-wrapping.", keywords: "executive desk conference table cubicle" },
+      { id: 75, code: "79800", desc: "Mattresses or Box Springs, Innerspring or Foam", cat: "Furniture", classStr: "Class 200–300", minClass: 200, maxClass: 300, mode: "bracket", hazmat: false, notes: "Standard boxed/bagged mattresses rate Class 250; roll-compressed mattresses rate Class 100–125.", keywords: "bedding memory foam mattress king queen" },
+      { id: 76, code: "80100", desc: "Cabinets, Kitchen, Storage or Bathroom, Wooden, SU", cat: "Furniture", classStr: "Class 125–175", minClass: 125, maxClass: 175, mode: "bracket", hazmat: false, notes: "Assembled cabinets carry empty internal void volume, lowering density.", keywords: "vanity pantry cupboard casework" },
+      { id: 77, code: "80400", desc: "Shelving, Steel, Boltless or Industrial, KD Flat", cat: "Furniture & Storage", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Heavy gauge uprights and shelves packed flat; dense, uniform stowability.", keywords: "pallet racking wire shelving warehouse racks" },
+      { id: 78, code: "80600", desc: "Display Racks, Retail Fixtures, Metal or Wire, KD", cat: "Furniture & Retail", classStr: "Class 85–110", minClass: 85, maxClass: 110, mode: "bracket", hazmat: false, notes: "Disassembled retail fixtures; nested components packed in master cartons.", keywords: "gondola shelving point of purchase pop display" },
+      { id: 79, code: "53000", desc: "Appliances, Major Household (Washers, Dryers, Ranges)", cat: "Appliances", classStr: "Class 92.5–110", minClass: 92.5, maxClass: 110, mode: "bracket", hazmat: false, notes: "Heavy sheet metal appliances in corrugated caps/tubes; must remain upright.", keywords: "refrigerator oven dishwasher stove freezer" },
+      { id: 80, code: "53200", desc: "Small Household Appliances (Toasters, Blenders, Coffee Makers)", cat: "Appliances", classStr: "Class 85–100", minClass: 85, maxClass: 100, mode: "bracket", hazmat: false, notes: "Packaged in molded styrofoam retail boxes inside master corrugated cartons.", keywords: "microwave air fryer mixer vacuum cleaner" },
+
+      // 8. Paper, Packaging, Printing & Corrugated Goods (81-88)
+      { id: 81, code: "151200", desc: "Paper, Printing, Writing, or Copy Paper, on Skids", cat: "Paper & Packaging", classStr: "Class 55–60", minClass: 55, maxClass: 60, mode: "bracket", hazmat: false, notes: "Reams packed in cases, stacked on pallets; extreme density and uniformity.", keywords: "office paper bond paper roll stock newsprint" },
+      { id: 82, code: "151320", desc: "Books, Hardcover or Softcover, Printed Matter, Boxed", cat: "Paper & Packaging", classStr: "Class 65–70", minClass: 65, maxClass: 70, mode: "bracket", hazmat: false, notes: "Heavy solid paper goods; packed in cartons, shrink-wrapped with corner boards.", keywords: "textbooks catalogs magazines brochures" },
+      { id: 83, code: "152000", desc: "Boxes, Corrugated Fiberboard, KD Flat, in Bundles/Bales", cat: "Paper & Packaging", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: false, notes: "Flat-folded cardboard cartons strapped to pallets; clean, uniform stowability.", keywords: "shipping boxes cartons gaylords cardboard" },
+      { id: 84, code: "152200", desc: "Envelopes, Paper, Plain or Printed, Boxed", cat: "Paper & Packaging", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Stationery and shipping envelopes packed in cartons; high density.", keywords: "mailers stationery folders" },
+      { id: 85, code: "152400", desc: "Paper Towels, Facial Tissues, Toilet Paper, Napkins", cat: "Paper & Packaging", classStr: "Class 175–250", minClass: 175, maxClass: 250, mode: "bracket", hazmat: false, notes: "High bulk, low weight; compressible paper goods consume significant trailer space.", keywords: "bath tissue disposable wipes sanitary paper" },
+      { id: 86, code: "152600", desc: "Labels, Pressure-Sensitive, Paper or Film, on Rolls", cat: "Paper & Packaging", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Printed adhesive labels on heavy paper cores; packed in master cartons.", keywords: "barcode labels stickers decals" },
+      { id: 87, code: "153000", desc: "Cardboard Partitions, Box Dividers, KD Flat", cat: "Paper & Packaging", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: false, notes: "Die-cut corrugated packing inserts; bundled flat on pallets.", keywords: "slip sheets pads dunnage" },
+      { id: 88, code: "153200", desc: "Paper Bags, Multi-Wall or Retail, Folded Flat", cat: "Paper & Packaging", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Heavy kraft paper sacks or retail shopping bags bundled on pallets.", keywords: "grocery bags kraft sacks" },
+
+      // 9. Foodstuffs, Beverages & Agricultural Commodities (89-95)
+      { id: 89, code: "72000", desc: "Foodstuffs, Dry, Canned, or Preserved, Boxed, NOI", cat: "Food & Beverage", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "Canned goods, dry pasta, preserved items; heavy case weight, high density.", keywords: "groceries soup sauces canned vegetables dry food" },
+      { id: 90, code: "72100", desc: "Beverages, Alcoholic (Beer, Wine, Distilled Spirits)", cat: "Food & Beverage", classStr: "Class 65–70", minClass: 65, maxClass: 70, mode: "bracket", hazmat: false, notes: "Glass bottles in corrugated partitions; high cargo value and theft/spill liability.", keywords: "liquor kegs cases of wine craft beer" },
+      { id: 91, code: "72200", desc: "Beverages, Non-Alcoholic, Soda, Water, Juice, Bottled/Canned", cat: "Food & Beverage", classStr: "Class 60–65", minClass: 60, maxClass: 65, mode: "bracket", hazmat: false, notes: "Heavy liquid cases on standard grocery pallets; prone to weight-out before cube-out.", keywords: "bottled water soft drinks energy drinks sports drinks" },
+      { id: 92, code: "72400", desc: "Flour, Meal, Grain, or Baking Mixes, in Bags/Boxes", cat: "Food & Beverage", classStr: "Class 55–60", minClass: 55, maxClass: 60, mode: "bracket", hazmat: false, notes: "Multi-ply paper bags; vulnerable to moisture and pest contamination.", keywords: "wheat flour cornmeal rice oats" },
+      { id: 93, code: "72600", desc: "Coffee, Green, Roasted, Ground or Whole Bean", cat: "Food & Beverage", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Burlap sacks or foil-lined valve bags in cartons; moderate liability.", keywords: "espresso beans tea leaves cocoa" },
+      { id: 94, code: "72800", desc: "Candy, Confectionery, Chocolate, Boxed", cat: "Food & Beverage", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: false, notes: "Requires temperature monitoring in summer; susceptible to melt and odor absorption.", keywords: "sweets snacks gum bars" },
+      { id: 95, code: "73200", desc: "Animal Feed, Pet Food (Kibble, Canned), Bagged or Boxed", cat: "Agriculture & Pets", classStr: "Class 55–65", minClass: 55, maxClass: 65, mode: "bracket", hazmat: false, notes: "Heavy bagged dry kibble or canned wet pet food on pallets; high density.", keywords: "dog food cat food livestock feed" },
+
+      // 10. Textiles, Apparel, Medical Devices & Specialty Goods (96-100)
+      { id: 96, code: "48900", desc: "Clothing, Garments, Apparel, Boxed or Hanging", cat: "Textiles & Apparel", classStr: "Class 100–175", minClass: 100, maxClass: 175, mode: "bracket", hazmat: false, notes: "Boxed flat rates Class 100–125; hanging garments in wardrobe cartons rate Class 175.", keywords: "shirts pants uniforms retail apparel shoes" },
+      { id: 97, code: "49100", desc: "Fabrics, Textile Piece Goods, Cotton/Synthetic, in Rolls", cat: "Textiles & Apparel", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: false, notes: "Rolled fabric wrapped in heavy poly tubing; protected from tearing and dirt.", keywords: "upholstery cloth canvas bolts of fabric" },
+      { id: 98, code: "49200", desc: "Carpets, Rugs, or Floor Coverings, Rolled, in Poly Wrap", cat: "Textiles & Apparel", classStr: "Class 70–100", minClass: 70, maxClass: 100, mode: "bracket", hazmat: false, notes: "Long rolls require side-loading or specialized carpet poles; over-length fees may apply.", keywords: "broadloom carpet area rugs turf" },
+      { id: 99, code: "56500", desc: "Medical Equipment, Diagnostic Instruments, Hospital Monitors", cat: "Medical & Scientific", classStr: "Class 110–150", minClass: 110, maxClass: 150, mode: "bracket", hazmat: false, notes: "Delicate electronic and optical sensors; high replacement cost, precision crating required.", keywords: "surgical devices lab analyzer ultrasound x-ray" },
+      { id: 100, code: "15500", desc: "Sporting Goods, Exercise Machines (Treadmills, Ellipticals)", cat: "Consumer & Sports", classStr: "Class 85–125", minClass: 85, maxClass: 125, mode: "bracket", hazmat: false, notes: "Partially disassembled steel frame fitness equipment in heavy cartons on pallets.", keywords: "gym equipment dumbbells stationary bike fitness" },
+      // 11. Extended NMFTA Master Groups & High-Volume Commodities (101-220)
+      { id: 101, code: "84120", desc: "Video Games, Home Gaming Consoles, Controllers & Board Games (Games or Toys, NOI)", cat: "Consumer & Sports", classStr: "Class 60–400 (Density)", minClass: 60, maxClass: 400, mode: "density_11", hazmat: false, notes: "Full density scale applies. Boxed game discs typically rate Class 70–85; consoles in foam retail boxes rate Class 92.5–110.", keywords: "video games ps5 playstation xbox nintendo switch controllers cartridges discs toys board games gaming" },
+      { id: 102, code: "84180", desc: "Arcade Video Game Machines, Pinball Machines (Coin, Token or Card Operated)", cat: "Consumer & Sports", classStr: "Class 100–250", minClass: 100, maxClass: 250, mode: "bracket", hazmat: false, notes: "Rated by greatest dimension and density. Crated cabinets 6–12 PCF rate Class 100–125; under 4 PCF rates Class 250.", keywords: "arcade cabinet coin op pinball machine amusement claw machine video game" },
+      { id: 103, code: "62020", desc: "Audio/Video Equipment: DVD/Blu-Ray Players, Soundbars, Receivers, Amplifiers", cat: "Electronics", classStr: "Class 100–125", minClass: 100, maxClass: 125, mode: "bracket", hazmat: false, notes: "Consumer home theater and media players in factory cushioned cartons.", keywords: "stereo receiver amplifier dvd blu-ray cd player audio video av equipment" },
+      { id: 104, code: "63410", desc: "Speakers, Loudspeakers, Subwoofers, in Boxes or Crates", cat: "Electronics", classStr: "Class 85–100", minClass: 85, maxClass: 100, mode: "bracket", hazmat: false, notes: "Boxed acoustic speakers and PA audio enclosures.", keywords: "speakers subwoofers pa system sound system studio monitors" },
+      { id: 105, code: "15600", desc: "Bicycles, Non-Motorized, in Cartons (Handlebars/Pedals Detached)", cat: "Consumer & Sports", classStr: "Class 150", minClass: 150, maxClass: 150, mode: "fixed", hazmat: false, notes: "Standard boxed bicycles; fully assembled unboxed bicycles rate Class 250.", keywords: "bikes mountain bike road bike frames cycling" },
+      { id: 106, code: "189800", desc: "E-Bikes, Electric Bicycles, Mobility Scooters (with Lithium Battery)", cat: "Consumer & Sports", classStr: "Class 125–150", minClass: 125, maxClass: 150, mode: "bracket", hazmat: true, notes: "Requires UN3171 / UN3481 Hazmat battery compliance markings on outer carton.", keywords: "ebike electric bike scooter moped mobility" },
+      { id: 107, code: "190290", desc: "Motorcycles, ATVs, Dirt Bikes, Crated", cat: "Automotive", classStr: "Class 125–150", minClass: 125, maxClass: 150, mode: "bracket", hazmat: false, notes: "Must be fully crated, fuel tank drained, and battery disconnected.", keywords: "motorcycle atv quad utv powersports scooter" },
+      { id: 108, code: "17810", desc: "Automotive Air Conditioners, Heaters, HVAC Evaporator Units", cat: "Automotive", classStr: "Class 85–150", minClass: 85, maxClass: 150, mode: "bracket", hazmat: false, notes: "Three-tier density scale with breaks at 6 and 10 PCF.", keywords: "auto ac heater core blower motor climate control" },
+      { id: 109, code: "125850", desc: "Mufflers, Catalytic Converters, Exhaust Systems & Tailpipes", cat: "Automotive", classStr: "Class 85–150", minClass: 85, maxClass: 150, mode: "bracket", hazmat: false, notes: "Includes relocated catalytic converters (formerly 57170) and exhaust pipes.", keywords: "exhaust muffler catalytic converter resonator tailpipe" },
+      { id: 110, code: "19480", desc: "Shock Absorbers, Struts, Coilover Suspension Assemblies", cat: "Automotive", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Boxed suspension struts and hydraulic/gas shock absorbers.", keywords: "shocks struts suspension springs leaf springs" },
+      { id: 111, code: "18900", desc: "Windshields, Automotive Safety Glass, Curved or Flat, Crated", cat: "Automotive", classStr: "Class 100–150", minClass: 100, maxClass: 150, mode: "bracket", hazmat: false, notes: "High fragility; requires specialized vertical rack crating and foam separators.", keywords: "auto glass windshield tempered glass window" },
+      { id: 112, code: "18300", desc: "Seats, Automobile, Truck or Bus, Boxed or Crated", cat: "Automotive", classStr: "Class 125–175", minClass: 125, maxClass: 175, mode: "bracket", hazmat: false, notes: "Bulky upholstered vehicle seats; folded/boxed rates lower than set-up.", keywords: "car seats bucket seats bench seat captain chair" },
+      { id: 113, code: "26700", desc: "Boilers, Heating or Power, Cast Iron or Steel", cat: "Industrial Machinery", classStr: "Class 65–70", minClass: 65, maxClass: 70, mode: "bracket", hazmat: false, notes: "Heavy commercial/industrial hydronic or steam boilers on heavy skids.", keywords: "steam boiler furnace hydronic heater" },
+      { id: 114, code: "114120", desc: "Agricultural Machinery, Implements, Tractor Attachments, NOI", cat: "Industrial Machinery", classStr: "Class 70–100", minClass: 70, maxClass: 100, mode: "bracket", hazmat: false, notes: "Plows, tillers, mower decks, and 3-point hitch farm implements.", keywords: "tractor attachment bush hog rotary cutter farm equipment" },
+      { id: 115, code: "123650", desc: "Commercial HVAC Unit Coolers, Chillers, Rooftop AC Units", cat: "Industrial Machinery", classStr: "Class 85–125", minClass: 85, maxClass: 125, mode: "bracket", hazmat: false, notes: "Rated by greatest dimension and density; protect condenser coils with plywood.", keywords: "hvac air conditioner heat pump chiller air handler condensing unit" },
+      { id: 116, code: "119500", desc: "Forklift Parts, Mast Assemblies, Forks, Counterweights", cat: "Industrial Machinery", classStr: "Class 55–70", minClass: 55, maxClass: 70, mode: "bracket", hazmat: false, notes: "Solid steel forks and counterweights rate Class 50–55; mast assemblies rate Class 70.", keywords: "forklift tines pallet jack parts material handling" },
+      { id: 117, code: "121400", desc: "Hydraulic Cylinders, Rams, Actuators, Iron or Steel", cat: "Industrial Machinery", classStr: "Class 65–70", minClass: 65, maxClass: 70, mode: "bracket", hazmat: false, notes: "Must be drained of hydraulic oil and capped; banded to heavy skids.", keywords: "piston cylinder hydraulic press actuator" },
+      { id: 118, code: "116030", desc: "POS Terminals, Cash Registers, Kiosks, Automated Teller Machines", cat: "Electronics", classStr: "Class 70–150 (Density)", minClass: 70, maxClass: 150, mode: "density_11", hazmat: false, notes: "Point-of-sale systems and self-checkout kiosks; rated on 11-sub density scale.", keywords: "pos register kiosk atm card reader terminal" },
+      { id: 119, code: "63200", desc: "Solar Panels, Photovoltaic (PV) Modules, Boxed on Pallets", cat: "Electrical", classStr: "Class 85–125", minClass: 85, maxClass: 125, mode: "bracket", hazmat: false, notes: "Fragile tempered glass solar arrays; stack flat or vertically in reinforced manufacturer pallets.", keywords: "solar panels pv modules renewable energy" },
+      { id: 120, code: "61450", desc: "Motor Controllers, VFDs, Variable Frequency Drives, Switchboards", cat: "Electrical", classStr: "Class 70–110", minClass: 70, maxClass: 110, mode: "bracket", hazmat: false, notes: "Industrial automation cabinets and motor starter drives.", keywords: "vfd plc automation panel motor starter" },
+      { id: 121, code: "116200", desc: "3D Printers, Commercial Copiers, Multifunction Office Printers", cat: "Electronics", classStr: "Class 92.5–125", minClass: 92.5, maxClass: 125, mode: "bracket", hazmat: false, notes: "Remove toner/ink cartridges prior to shipping; ship upright on shock pallet.", keywords: "copier xerox printer plotter scanner" },
+      { id: 122, code: "62500", desc: "Telecommunications Rack Equipment, Routers, Modems, Antennas", cat: "Electronics", classStr: "Class 92.5–150", minClass: 92.5, maxClass: 150, mode: "bracket", hazmat: false, notes: "Cellular base station gear and enterprise networking hardware.", keywords: "router firewall antenna satellite dish telecom" },
+      { id: 123, code: "40225", desc: "Caps, Covers, Lids, Tops, NOI (for Bottles, Jars, Cans, Drums)", cat: "Plastics & Rubber", classStr: "Class 60–400 (Density)", minClass: 60, maxClass: 400, mode: "density_11", hazmat: false, notes: "Consolidated NMFC item for all bottle/jar caps and closures; 11-sub density scale.", keywords: "bottle caps jar lids closures screw tops" },
+      { id: 124, code: "4625", desc: "Adhesives, Cements, Glues, Pastes, NOI (Non-Hazardous)", cat: "Chemicals", classStr: "Class 60–85", minClass: 60, maxClass: 85, mode: "bracket", hazmat: false, notes: "Updated four-subdivision density classification for non-flammable adhesives.", keywords: "construction adhesive contact cement paste" },
+      { id: 125, code: "58770", desc: "Drugs, Medicines, Pharmaceuticals, OTC Healthcare Products, NOI", cat: "Medical & Scientific", classStr: "Class 60–400 (Density)", minClass: 60, maxClass: 400, mode: "density_11", hazmat: false, notes: "Amended to standard 11-sub density scale; high cargo value and temperature control notes.", keywords: "pharmaceuticals medicine vitamins supplements pills" },
+      { id: 126, code: "56700", desc: "Hospital Beds, Wheelchairs, Patient Lifts & Mobility Aids", cat: "Medical & Scientific", classStr: "Class 100–175", minClass: 100, maxClass: 175, mode: "bracket", hazmat: false, notes: "Folded manual wheelchairs rate Class 100–125; assembled medical beds rate Class 125–150.", keywords: "wheelchair gurney stretcher exam table walker" },
+      { id: 127, code: "56800", desc: "Surgical Supplies, Syringes, Gloves, Sterile Medical Disposables", cat: "Medical & Scientific", classStr: "Class 100–150", minClass: 100, maxClass: 150, mode: "bracket", hazmat: false, notes: "Lightweight boxed medical consumables in master cartons.", keywords: "nitrile gloves masks gowns bandages catheters" },
+      { id: 128, code: "80240", desc: "Filing Cabinets, Storage Cabinets, Wood or Steel (Density-Based)", cat: "Furniture", classStr: "Class 85–150", minClass: 85, maxClass: 150, mode: "bracket", hazmat: false, notes: "Consolidated item for steel and wood filing cabinets with breaks at 6 and 12 PCF.", keywords: "file cabinet lateral file locker office storage" },
+      { id: 129, code: "79300", desc: "Restaurant Booths, Banquet Seating, Commercial Tables", cat: "Furniture", classStr: "Class 100–175", minClass: 100, maxClass: 175, mode: "bracket", hazmat: false, notes: "Table tops shipped flat rate Class 70–85; assembled booths rate Class 150–175.", keywords: "dinette booth bench restaurant furniture" },
+      { id: 130, code: "86700", desc: "Glassware, Bottles, Jars, Drinking Glasses, Empty, in Boxes", cat: "Paper & Packaging", classStr: "Class 70–125", minClass: 70, maxClass: 125, mode: "bracket", hazmat: false, notes: "Partitioned corrugated cartons on pallets; requires 'Fragile - Glass' markings.", keywords: "glass bottles mason jars wine bottles tumblers" },
+      { id: 131, code: "88100", desc: "Mirrors, Framed or Unframed, Crated", cat: "Building Materials", classStr: "Class 100–150", minClass: 100, maxClass: 150, mode: "bracket", hazmat: false, notes: "High damage liability; must be packed in wood crates or heavy foam-lined mirror boxes.", keywords: "vanity mirror wall mirror dressing mirror" },
+      { id: 132, code: "35350", desc: "Window Blinds, Shades, Shutters, Interior or Exterior", cat: "Building Materials", classStr: "Class 85–125", minClass: 85, maxClass: 125, mode: "bracket", hazmat: false, notes: "Rated by greatest length and density; long boxes over 96 inches trigger length rules.", keywords: "venetian blinds roller shades plantation shutters" },
+      { id: 133, code: "35255", desc: "Railings, Handrails, Balustrades, Metal or Wood, NOI", cat: "Building Materials", classStr: "Class 70–125", minClass: 70, maxClass: 125, mode: "bracket", hazmat: false, notes: "Stair and deck railing kits; rated by density and packaging.", keywords: "stair railing guardrail aluminum railing" },
+      { id: 134, code: "39500", desc: "Windows, Aluminum, Vinyl, or Wood Framed, Glazed", cat: "Building Materials", classStr: "Class 100–150", minClass: 100, maxClass: 150, mode: "bracket", hazmat: false, notes: "Shipped vertically on A-frames or crated with corner blocks; never flat-stack uncrated.", keywords: "double hung window casement window sliding glass" },
+      { id: 135, code: "104030", desc: "Building Anchors, Joist Hangers, Structural Framing Brackets", cat: "Metals & Hardware", classStr: "Class 70", minClass: 70, maxClass: 70, mode: "fixed", hazmat: false, notes: "Stamped steel construction connectors in master cartons on pallets.", keywords: "simpson strong tie hurricane clips post bases" },
+      { id: 136, code: "136500", desc: "Musical Instruments, Guitars, Keyboards, Drums, Amplifiers", cat: "Consumer & Sports", classStr: "Class 125–200", minClass: 125, maxClass: 200, mode: "bracket", hazmat: false, notes: "High value and fragility; must ship inside hard cases within corrugated cartons.", keywords: "piano organ guitar drum kit musical gear" },
+      { id: 137, code: "49500", desc: "Footwear, Shoes, Boots, Sneakers, in Boxes", cat: "Textiles & Apparel", classStr: "Class 100–125", minClass: 100, maxClass: 125, mode: "bracket", hazmat: false, notes: "Shoeboxes packed inside master corrugated cases; moderate density (8–11 PCF).", keywords: "athletic shoes work boots sandals" },
+      { id: 138, code: "49600", desc: "Luggage, Suitcases, Backpacks, Handbags, Duffel Bags", cat: "Textiles & Apparel", classStr: "Class 125–200", minClass: 125, maxClass: 200, mode: "bracket", hazmat: false, notes: "Nested luggage sets rate lower (Class 125); non-nested hard suitcases rate Class 175–200.", keywords: "travel bags briefcases totes purses" },
+      { id: 139, code: "49300", desc: "Bedding: Comforters, Pillows, Blankets, Bed Sheets, Boxed", cat: "Textiles & Apparel", classStr: "Class 125–200", minClass: 125, maxClass: 200, mode: "bracket", hazmat: false, notes: "Folded flat sheet sets rate Class 85–100; bulky pillows/comforters rate Class 175–250.", keywords: "linens quilts duvets towels" },
+      { id: 140, code: "49910", desc: "Gloves or Mittens, Work, Industrial, or Winter, in Boxes", cat: "Textiles & Apparel", classStr: "Class 100–175", minClass: 100, maxClass: 175, mode: "bracket", hazmat: false, notes: "Two-tier density break at 7 PCF: ≥7 PCF rates Class 100; <7 PCF rates Class 175.", keywords: "leather work gloves safety gloves" },
+      { id: 141, code: "154360", desc: "Tape, Sealing, Masking, Packaging or Duct Tape, in Cartons", cat: "Paper & Packaging", classStr: "Class 70–92.5", minClass: 70, maxClass: 92.5, mode: "bracket", hazmat: false, notes: "Two-tiered density classification for adhesive carton-sealing tapes.", keywords: "packing tape strapping tape rolls" },
+      { id: 142, code: "150500", desc: "Pallets, Skids, Wooden, Plastic, or Metal (Empty, Stacked)", cat: "Paper & Packaging", classStr: "Class 70–100", minClass: 70, maxClass: 100, mode: "bracket", hazmat: false, notes: "Nested plastic pallets or tightly stacked wood skids.", keywords: "empty pallets gaylord lids wood skids" },
+      { id: 143, code: "59413", desc: "Personal Care, Hygiene, Sanitary Pads, Diapers, Paper Products", cat: "Consumer & Sports", classStr: "Class 150", minClass: 150, maxClass: 150, mode: "fixed", hazmat: false, notes: "Consolidated item carrying a uniform Class 150 rating.", keywords: "baby diapers wipes personal hygiene" },
+      { id: 144, code: "50100", desc: "Cosmetics, Toiletries, Shampoo, Lotion, Skin Care, in Boxes", cat: "Chemicals", classStr: "Class 70–85", minClass: 70, maxClass: 85, mode: "bracket", hazmat: false, notes: "Dense liquid/cream bottles in retail cases; aerosol sprays may require Hazmat LTD QTY.", keywords: "beauty supplies hair care soap perfume" },
+      { id: 145, code: "145000", desc: "Motor Oils, Lubricants, Hydraulic Fluids, Greases (Non-Flammable)", cat: "Chemicals", classStr: "Class 65", minClass: 65, maxClass: 65, mode: "fixed", hazmat: false, notes: "55-gallon drums, 5-gallon pails, or quart cases on pallets; high density.", keywords: "synthetic oil gear oil transmission fluid" },
+      { id: 146, code: "73400", desc: "Seeds, Agricultural, Lawn Grass, Corn, Soybean, in Bags", cat: "Agriculture & Pets", classStr: "Class 60–70", minClass: 60, maxClass: 70, mode: "bracket", hazmat: false, notes: "Multi-wall bags stacked on pallets with shrink wrap and slip sheets.", keywords: "planting seed birdseed turf seed" },
+      { id: 147, code: "68000", desc: "Fertilizer, Dry or Liquid, Potting Soil, Mulch, Peat Moss", cat: "Agriculture & Pets", classStr: "Class 50–65", minClass: 50, maxClass: 65, mode: "bracket", hazmat: false, notes: "Heavy bagged soil/fertilizer on skids; check oxidizer rules for ammonium nitrate.", keywords: "compost garden soil plant food" },
+      { id: 148, code: "74000", desc: "Spices, Seasonings, Herbs, Food Flavorings, Extracts", cat: "Food & Beverage", classStr: "Class 70–100", minClass: 70, maxClass: 100, mode: "bracket", hazmat: false, notes: "Drums, boxes, or jars of dry Culinary herbs and spices.", keywords: "pepper salt garlic powder bakery ingredients" },
+      { id: 149, code: "74500", desc: "Sugar, Salt, Sweeteners, Bulk Dry Food Ingredients, Bagged", cat: "Food & Beverage", classStr: "Class 55–60", minClass: 55, maxClass: 60, mode: "bracket", hazmat: false, notes: "50-lb bags or 2,000-lb super sacks (FIBCs) on pallets; very high density.", keywords: "cane sugar sea salt dextrose starch" },
+      { id: 150, code: "161130", desc: "Signs, Retail Signage, Neon/LED Signs, Sign Posts & Brackets", cat: "Furniture & Retail", classStr: "Class 85–150", minClass: 85, maxClass: 150, mode: "bracket", hazmat: false, notes: "Rated by greatest dimension and density; illuminated glass signs require crating.", keywords: "billboard store sign scoreboard" }
+    ];
+
+    // 18 Official NMFC Freight Classes & Density Scale
+    const DENSITY_SCALE = [
+      { fClass: 50, minPcf: 50.0, maxPcf: 99999, rangeLabel: "50 lbs/ft³ and over", sub11: "Sub 11 (≥30 PCF → Class 60)", examples: "Steel plates, nuts & bolts, castings, brick", tier: "Lowest Rate", color: "emerald" },
+      { fClass: 55, minPcf: 35.0, maxPcf: 50.0, rangeLabel: "35 to < 50 lbs/ft³", sub11: "Sub 11 (≥30 PCF → Class 60)", examples: "Cement bags, hardwood flooring, wire coils", tier: "Very Low Rate", color: "emerald" },
+      { fClass: 60, minPcf: 30.0, maxPcf: 35.0, rangeLabel: "30 to < 35 lbs/ft³", sub11: "Sub 11 (30+ PCF)", examples: "Brake drums, steel wheels, bottled beverages", tier: "Low Rate", color: "emerald" },
+      { fClass: 65, minPcf: 22.5, maxPcf: 30.0, rangeLabel: "22.5 to < 30 lbs/ft³", sub11: "Sub 10 (22.5–30 PCF)", examples: "Ceramic tile, bearings, boxed books", tier: "Low Rate", color: "emerald" },
+      { fClass: 70, minPcf: 15.0, maxPcf: 22.5, rangeLabel: "15 to < 22.5 lbs/ft³", sub11: "Sub 9 (15–22.5 PCF)", examples: "Auto engines, electric motors, hand tools, KD shelving", tier: "Moderate-Low", color: "teal" },
+      { fClass: 77.5, minPcf: 13.5, maxPcf: 15.0, rangeLabel: "13.5 to < 15 lbs/ft³", sub11: "Sub 8 (13.5–15 PCF)", examples: "Pneumatic tires, bathroom sinks, chemicals", tier: "Moderate", color: "sky" },
+      { fClass: 85, minPcf: 12.0, maxPcf: 13.5, rangeLabel: "12 to < 13.5 lbs/ft³", sub11: "Sub 7 (12–13.5 PCF)", examples: "Transmissions, pumps, power tools, KD furniture", tier: "Moderate", color: "sky" },
+      { fClass: 92.5, minPcf: 10.5, maxPcf: 12.0, rangeLabel: "10.5 to < 12 lbs/ft³", sub11: "Sub 6 (10.5–12 PCF)", examples: "Rack servers, air compressors, major appliances", tier: "Moderate", color: "sky" },
+      { fClass: 100, minPcf: 9.0, maxPcf: 10.5, rangeLabel: "9 to < 10.5 lbs/ft³", sub11: "Sub 5 (9–10.5 PCF)", examples: "Circuit boards, alloy wheels, stacked chairs", tier: "Baseline Rate", color: "amber" },
+      { fClass: 110, minPcf: 8.0, maxPcf: 9.0, rangeLabel: "8 to < 9 lbs/ft³", sub11: "Sub 5 (8–10 PCF)", examples: "Water heaters, electrical switchgear, retail racks", tier: "Moderate-High", color: "amber" },
+      { fClass: 125, minPcf: 7.0, maxPcf: 8.0, rangeLabel: "7 to < 8 lbs/ft³", sub11: "Sub 4 (6–8 PCF)", examples: "Conveyor sections, medical monitors, wooden doors", tier: "Moderate-High", color: "amber" },
+      { fClass: 150, minPcf: 6.0, maxPcf: 7.0, rangeLabel: "6 to < 7 lbs/ft³", sub11: "Sub 4 (6–8 PCF)", examples: "Auto body panels, commercial LED fixtures, cabinets", tier: "High Rate", color: "orange" },
+      { fClass: 175, minPcf: 5.0, maxPcf: 6.0, rangeLabel: "5 to < 6 lbs/ft³", sub11: "Sub 3 (4–6 PCF)", examples: "Hanging clothing, upholstered chairs, paper towels", tier: "High Rate", color: "orange" },
+      { fClass: 200, minPcf: 4.0, maxPcf: 5.0, rangeLabel: "4 to < 5 lbs/ft³", sub11: "Sub 3 (4–6 PCF)", examples: "Flat-panel TVs, auto bumpers, fiberglass tubs", tier: "Very High Rate", color: "rose" },
+      { fClass: 250, minPcf: 3.0, maxPcf: 4.0, rangeLabel: "3 to < 4 lbs/ft³", sub11: "Sub 2 (2–4 PCF)", examples: "Boxed mattresses, assembled desks, empty containers", tier: "Very High Rate", color: "rose" },
+      { fClass: 300, minPcf: 2.0, maxPcf: 3.0, rangeLabel: "2 to < 3 lbs/ft³", sub11: "Sub 2 (2–4 PCF)", examples: "Hollow plastic tanks, kayaks, assembled wood cabinets", tier: "Extreme Rate", color: "rose" },
+      { fClass: 400, minPcf: 1.0, maxPcf: 2.0, rangeLabel: "1 to < 2 lbs/ft³", sub11: "Sub 1 (<1–2 PCF)", examples: "Fiberglass insulation batts, large chandeliers", tier: "Extreme Rate", color: "rose" },
+      { fClass: 500, minPcf: 0.0, maxPcf: 1.0, rangeLabel: "Less than 1 lb/ft³", sub11: "Sub 1 (<1 PCF)", examples: "Packing peanuts, low-density foam, ping pong balls", tier: "Highest Rate", color: "rose" }
+    ];
+
+    const OrderedClasses = [50, 55, 60, 65, 70, 77.5, 85, 92.5, 100, 110, 125, 150, 175, 200, 250, 300, 400, 500];
+
+    // =========================================================================
+    // 2. APPLICATION STATE
+    // =========================================================================
+    let state = {
+      activeTab: "calculator",
+      selectedCategory: "ALL",
+      searchQuery: "",
+      selectedItem: NMFC_ITEMS[58], // Default: #59 (NMFC 156600 Plastic Articles)
+      customMode: false,
+      customName: "",
+      conditionModifier: "standard",
+      length: 48,
+      width: 40,
+      height: 48,
+      weightPerUnit: 650,
+      qty: 1,
+      packaging: "Pallets",
+      simulateOverhang: false,
+      manifest: [],
+      dirSearch: "",
+      dirCategory: "ALL"
+    };
+
+    // Load saved manifest if available
+    try {
+      const saved = localStorage.getItem("nmfc_manifest_v1");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) state.manifest = parsed;
+      }
+    } catch (e) {
+      // Ignore storage restriction in sandboxed iframe
+    }
+
+    // =========================================================================
+    // 3. CORE DENSITY & CLASSIFICATION ENGINE
+    // =========================================================================
+    function getPureDensityBracket(pcf) {
+      for (let i = 0; i < DENSITY_SCALE.length; i++) {
+        if (pcf >= DENSITY_SCALE[i].minPcf) {
+          return DENSITY_SCALE[i];
+        }
+      }
+      return DENSITY_SCALE[DENSITY_SCALE.length - 1];
+    }
+
+    // Standard 11-Sub-Item table used by NMFC 156600 (Plastics), 114000 (Machinery), etc.
+    function get11SubTier(pcf) {
+      if (pcf < 1) return { sub: "Sub 1", fClass: 400, range: "Less than 1 PCF" };
+      if (pcf < 2) return { sub: "Sub 2", fClass: 300, range: "1 to < 2 PCF" };
+      if (pcf < 4) return { sub: "Sub 3", fClass: 250, range: "2 to < 4 PCF" };
+      if (pcf < 6) return { sub: "Sub 4", fClass: 175, range: "4 to < 6 PCF" };
+      if (pcf < 8) return { sub: "Sub 5", fClass: 125, range: "6 to < 8 PCF" };
+      if (pcf < 10) return { sub: "Sub 6", fClass: 100, range: "8 to < 10 PCF" };
+      if (pcf < 12) return { sub: "Sub 7", fClass: 92.5, range: "10 to < 12 PCF" };
+      if (pcf < 15) return { sub: "Sub 8", fClass: 85, range: "12 to < 15 PCF" };
+      if (pcf < 22.5) return { sub: "Sub 9", fClass: 70, range: "15 to < 22.5 PCF" };
+      if (pcf < 30) return { sub: "Sub 10", fClass: 65, range: "22.5 to < 30 PCF" };
+      return { sub: "Sub 11", fClass: 60, range: "30 PCF or greater" };
+    }
+
+    function shiftClassIndex(baseClass, steps) {
+      const idx = OrderedClasses.indexOf(baseClass);
+      if (idx === -1) return baseClass;
+      const nextIdx = Math.max(0, Math.min(OrderedClasses.length - 1, idx + steps));
+      return OrderedClasses[nextIdx];
+    }
+
+    function computeClassification() {
+      const effLength = Math.max(1, Number(state.length) || 48) + (state.simulateOverhang ? 4 : 0);
+      const effWidth = Math.max(1, Number(state.width) || 40) + (state.simulateOverhang ? 4 : 0);
+      const effHeight = Math.max(1, Number(state.height) || 48);
+      const unitWeight = Math.max(1, Number(state.weightPerUnit) || 1);
+      const qty = Math.max(1, Math.round(Number(state.qty) || 1));
+
+      const unitCubicFeet = (effLength * effWidth * effHeight) / 1728.0;
+      const totalCubicFeet = unitCubicFeet * qty;
+      const totalWeight = unitWeight * qty;
+      const pcf = unitWeight / unitCubicFeet;
+
+      const rawBracket = getPureDensityBracket(pcf);
+      const item = state.selectedItem;
+
+      let finalClass = rawBracket.fClass;
+      let nmfcCode = item ? item.code : "156600";
+      let subItemText = "Standard";
+      let codeTypeLabel = "Commodity Specific";
+      let basisLabel = "Density & Tariff Aligned";
+      let explanation = "";
+
+      if (state.customMode || !item) {
+        nmfcCode = "NOI / Density";
+        const sub11 = get11SubTier(pcf);
+        finalClass = rawBracket.fClass;
+        subItemText = `${sub11.sub} (${rawBracket.rangeLabel})`;
+        codeTypeLabel = "General Density Scale";
+        basisLabel = "Pure 18-Class Density";
+        explanation = `Custom commodity rated directly on the 18-class NMFC density scale at ${pcf.toFixed(2)} PCF.`;
+      } else if (item.mode === "density_11") {
+        const sub11 = get11SubTier(pcf);
+        finalClass = sub11.fClass;
+        subItemText = `${sub11.sub} (${sub11.range})`;
+        codeTypeLabel = "11-Sub Density Tariff";
+        basisLabel = `NMFC ${item.code} ${sub11.sub}`;
+        explanation = `NMFC #${item.code} is a full 11-sub density-based item. At ${pcf.toFixed(2)} PCF, it falls into ${sub11.sub} → Class ${finalClass}.`;
+      } else if (item.mode === "fixed") {
+        finalClass = item.minClass;
+        if (pcf < 8 && item.minClass <= 70) {
+          // Warn if shipment is unusually low density for a fixed class item
+          subItemText = "Fixed Class (Low PCF Warning)";
+          basisLabel = "Fixed Commodity Class";
+          explanation = `NMFC #${item.code} carries a fixed base rating of Class ${item.minClass}, though your low density (${pcf.toFixed(1)} PCF) could trigger a W&I packaging review.`;
+        } else {
+          subItemText = "Fixed Tariff Rating";
+          basisLabel = "Fixed Commodity Class";
+          explanation = `NMFC #${item.code} has a uniform fixed rating of Class ${finalClass} when packaged according to tariff specifications.`;
+        }
+      } else {
+        // Bracket mode (e.g. Class 60-70, Class 150-200)
+        codeTypeLabel = "Bracketed Sub-Item";
+        if (rawBracket.fClass <= item.minClass) {
+          finalClass = item.minClass;
+          subItemText = `Sub 1 (Dense Tier ≥ ${rawBracket.minPcf} PCF)`;
+          basisLabel = "Lower Bracket Reached";
+          explanation = `Your high density (${pcf.toFixed(2)} PCF) qualifies this shipment for the lowest class in NMFC #${item.code}'s range (Class ${item.minClass}).`;
+        } else if (rawBracket.fClass >= item.maxClass) {
+          finalClass = item.maxClass;
+          subItemText = `Sub 2/3 (Low-Density Tier)`;
+          basisLabel = "Upper Bracket Cap";
+          explanation = `Based on ${pcf.toFixed(2)} PCF and handling/stowability rules for NMFC #${item.code}, this rates at the upper bracket (Class ${item.maxClass}).`;
+        } else {
+          // Snap to closest valid class within [minClass, maxClass]
+          finalClass = rawBracket.fClass;
+          subItemText = `Density Sub (${rawBracket.rangeLabel})`;
+          basisLabel = "Matched Within Bracket";
+          explanation = `Calculated density of ${pcf.toFixed(2)} PCF places this shipment directly at Class ${finalClass} within NMFC #${item.code}'s ${item.classStr} range.`;
+        }
+      }
+
+      // Apply Configuration Modifier (KD vs SU)
+      if (state.conditionModifier === "kd_nested") {
+        finalClass = shiftClassIndex(finalClass, -1);
+        subItemText += " • KD/Nested";
+        explanation += " Disassembled (KD) / nested configuration reduces class by 1 tier.";
+      } else if (state.conditionModifier === "su_assembled") {
+        finalClass = shiftClassIndex(finalClass, 1);
+        subItemText += " • Set-Up (SU)";
+        explanation += " Fully Set-Up (SU) / uncrated state increases class by 1 tier due to stowability/handling.";
+      }
+
+      // Calculate Next Better Class Optimization Tip
+      let optTip = "";
+      const currentScaleIdx = DENSITY_SCALE.findIndex(d => d.fClass === rawBracket.fClass);
+      if (currentScaleIdx > 0) {
+        const betterTier = DENSITY_SCALE[currentScaleIdx - 1];
+        const targetPcf = betterTier.minPcf;
+        const maxAllowedCube = unitWeight / targetPcf;
+        const maxAllowedHeight = (maxAllowedCube * 1728.0) / (effLength * effWidth);
+        const heightReduction = effHeight - maxAllowedHeight;
+
+        if (heightReduction > 0 && heightReduction <= 14) {
+          optTip = `Lowering pallet height by ${heightReduction.toFixed(1)}" (to ${maxAllowedHeight.toFixed(1)}" H) raises density to ${targetPcf} PCF, qualifying for density Class ${betterTier.fClass}.`;
+        } else {
+          const neededWeight = Math.ceil(targetPcf * unitCubicFeet - unitWeight);
+          optTip = `To reach the next lower density tier (Class ${betterTier.fClass} at ≥${targetPcf} PCF), each pallet would need +${neededWeight} lbs or smaller dimensions.`;
+        }
+      } else {
+        optTip = `Maximum density tier achieved (≥50 PCF, Class 50). Ensure pallet weight does not exceed carrier fork limits.`;
+      }
+
+      const descTitle = state.customMode
+        ? (state.customName.trim() || "General Freight Commodity, NOI")
+        : item.desc;
+
+      const bolLine = `${qty} ${state.packaging} | NMFC #${nmfcCode} (${subItemText}) | Class ${finalClass} | ${descTitle}${item && item.hazmat ? " [HAZMAT]" : ""} | ${effLength}x${effWidth}x${effHeight} in | ${totalWeight.toLocaleString()} lbs (${pcf.toFixed(2)} PCF)`;
+
+      return {
+        effLength,
+        effWidth,
+        effHeight,
+        unitWeight,
+        qty,
+        unitCubicFeet,
+        totalCubicFeet,
+        totalWeight,
+        pcf,
+        rawBracket,
+        finalClass,
+        nmfcCode,
+        subItemText,
+        codeTypeLabel,
+        basisLabel,
+        explanation,
+        optTip,
+        descTitle,
+        bolLine,
+        hazmat: item ? item.hazmat : false
+      };
+    }
+
+    // =========================================================================
+    // 4. UI RENDERING FUNCTIONS
+    // =========================================================================
+    const CATEGORIES = [
+      "ALL",
+      "Automotive",
+      "Industrial Machinery",
+      "Tools & Hardware",
+      "Metals & Hardware",
+      "Building Materials",
+      "Electronics",
+      "Electrical",
+      "Plastics & Rubber",
+      "Chemicals",
+      "Furniture",
+      "Appliances",
+      "Paper & Packaging",
+      "Food & Beverage"
+    ];
+
+    function renderCategoryPills() {
+      const container = document.getElementById("category-pills-container");
+      container.innerHTML = CATEGORIES.map(cat => {
+        const active = state.selectedCategory === cat;
+        const cls = active
+          ? "bg-slate-900 text-amber-400 border-slate-900 font-bold"
+          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100 font-medium";
+        const label = cat === "ALL" ? "All Sectors (100)" : cat;
+        return `<button type="button" data-cat="${cat}" class="cat-pill-btn text-xs px-2.5 py-1 rounded-full border whitespace-nowrap transition ${cls}">${label}</button>`;
+      }).join("");
+
+      container.querySelectorAll(".cat-pill-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.selectedCategory = btn.getAttribute("data-cat");
+          renderCategoryPills();
+          renderCommoditySearchResults();
+        });
+      });
+    }
+
+    function renderCommoditySearchResults() {
+      const listEl = document.getElementById("commodity-results-list");
+      const countEl = document.getElementById("match-count-label");
+      const q = state.searchQuery.trim().toLowerCase();
+
+      const filtered = NMFC_ITEMS.filter(item => {
+        const catMatch =
+          state.selectedCategory === "ALL" ||
+          item.cat.toLowerCase().includes(state.selectedCategory.toLowerCase());
+        if (!catMatch) return false;
+        if (!q) return true;
+        return (
+          item.code.toLowerCase().includes(q) ||
+          item.desc.toLowerCase().includes(q) ||
+          item.cat.toLowerCase().includes(q) ||
+          item.notes.toLowerCase().includes(q) ||
+          item.keywords.toLowerCase().includes(q)
+        );
+      });
+
+      countEl.textContent = `${filtered.length} matching item${filtered.length === 1 ? "" : "s"}`;
+
+      let html = "";
+      filtered.forEach(item => {
+        const isSelected = !state.customMode && state.selectedItem && state.selectedItem.id === item.id;
+        const rowBg = isSelected ? "bg-amber-50/90 border-l-4 border-l-amber-500" : "bg-white hover:bg-slate-50";
+        const badgeMode = item.mode === "density_11"
+          ? `<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">11-Sub Density</span>`
+          : item.mode === "fixed"
+          ? `<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">Fixed Class</span>`
+          : `<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">Density Bracket</span>`;
+
+        const hazBadge = item.hazmat
+          ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-300">HAZMAT</span>`
+          : "";
+
+        html += `
+          <button type="button" data-item-id="${item.id}" class="commodity-option-btn w-full text-left px-3.5 py-2.5 transition flex items-center justify-between gap-3 ${rowBg}">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-mono-code text-xs font-bold px-1.5 py-0.5 rounded bg-slate-900 text-amber-400">#${item.code}</span>
+                <span class="text-xs sm:text-sm font-bold text-slate-900 truncate">${item.desc}</span>
+                ${hazBadge}
+              </div>
+              <p class="text-[11px] text-slate-500 truncate mt-0.5">${item.cat} • ${item.notes}</p>
+            </div>
+            <div class="shrink-0 text-right flex flex-col items-end gap-1">
+              <span class="font-mono-code text-xs font-bold text-slate-800">${item.classStr}</span>
+              ${badgeMode}
+            </div>
+          </button>
+        `;
+      });
+
+      // Always append option to rate as Custom / Unlisted General Density Item
+      const customQueryText = state.searchQuery.trim() || "Custom Unlisted Commodity";
+      const customActive = state.customMode ? "bg-amber-50 border-l-4 border-l-amber-500" : "bg-slate-50 hover:bg-slate-100";
+      html += `
+        <button type="button" id="use-custom-commodity-btn" class="w-full text-left px-3.5 py-2.5 transition flex items-center justify-between gap-3 ${customActive}">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono-code text-xs font-bold px-1.5 py-0.5 rounded bg-amber-500 text-slate-950">CUSTOM / NOI</span>
+              <span class="text-xs sm:text-sm font-bold text-slate-900">Rate "${customQueryText}" by Pure 18-Class Density</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-0.5">Use when commodity is not listed above; calculates class strictly from L×W×H and weight.</p>
+          </div>
+          <span class="text-xs font-semibold text-amber-700 shrink-0">Use Density Scale →</span>
+        </button>
+      `;
+
+      listEl.innerHTML = html;
+
+      listEl.querySelectorAll(".commodity-option-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = Number(btn.getAttribute("data-item-id"));
+          const found = NMFC_ITEMS.find(x => x.id === id);
+          if (found) {
+            state.selectedItem = found;
+            state.customMode = false;
+            renderCommoditySearchResults();
+            updateAllCalculations();
+          }
+        });
+      });
+
+      const customBtn = document.getElementById("use-custom-commodity-btn");
+      if (customBtn) {
+        customBtn.addEventListener("click", () => {
+          state.customMode = true;
+          state.customName = state.searchQuery.trim() || "General Freight, NOI";
+          renderCommoditySearchResults();
+          updateAllCalculations();
+        });
+      }
+    }
+
+    function renderPalletSvg(effL, effW, effH, overhang) {
+      const svg = document.getElementById("pallet-svg-preview");
+      const caption = document.getElementById("svg-dim-caption");
+      caption.textContent = `${effL}×${effW}×${effH}"`;
+
+      // Normalize height visually between 18 and 62 px
+      const boxH = Math.max(18, Math.min(62, Math.round((effH / 72) * 52)));
+      const baseTopY = 88;
+      const boxTopY = baseTopY - boxH;
+      const boxStroke = overhang ? "#f43f5e" : "#f59e0b";
+      const boxFillLeft = overhang ? "rgba(244,63,94,0.35)" : "rgba(245,158,11,0.35)";
+      const boxFillRight = overhang ? "rgba(225,29,72,0.5)" : "rgba(217,119,6,0.5)";
+      const boxFillTop = overhang ? "rgba(251,113,133,0.45)" : "rgba(251,191,36,0.45)";
+      const exp = overhang ? 4 : 0;
+
+      svg.innerHTML = `
+        <!-- Wooden Pallet Base -->
+        <polygon points="60,104 20,86 60,72 100,86" fill="#78350f" stroke="#b45309" stroke-width="1.5"/>
+        <polygon points="20,86 60,104 60,109 20,91" fill="#451a03" stroke="#92400e" stroke-width="1"/>
+        <polygon points="100,86 60,104 60,109 100,91" fill="#451a03" stroke="#92400e" stroke-width="1"/>
+        <!-- Cargo Box (Isometric) -->
+        <polygon points="${24 - exp},${baseTopY} 60,${baseTopY + 15 + exp/2} 60,${boxTopY + 15} ${24 - exp},${boxTopY}" fill="${boxFillLeft}" stroke="${boxStroke}" stroke-width="1.6"/>
+        <polygon points="${96 + exp},${baseTopY} 60,${baseTopY + 15 + exp/2} 60,${boxTopY + 15} ${96 + exp},${boxTopY}" fill="${boxFillRight}" stroke="${boxStroke}" stroke-width="1.6"/>
+        <polygon points="60,${boxTopY - 12} ${24 - exp},${boxTopY} 60,${boxTopY + 15} ${96 + exp},${boxTopY}" fill="${boxFillTop}" stroke="${boxStroke}" stroke-width="1.6"/>
+      `;
+    }
+
+    function updateAllCalculations() {
+      const calc = computeClassification();
+
+      // Update Selected Commodity Card
+      const pillEl = document.getElementById("selected-mode-pill");
+      const nmfcBadge = document.getElementById("sel-nmfc-badge");
+      const catBadge = document.getElementById("sel-cat-badge");
+      const typeBadge = document.getElementById("sel-type-badge");
+      const descTitle = document.getElementById("sel-desc-title");
+      const notesText = document.getElementById("sel-notes-text");
+
+      if (state.customMode) {
+        pillEl.textContent = "Custom Density Mode";
+        pillEl.className = "text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300";
+        nmfcBadge.textContent = "NOI / DENSITY";
+        catBadge.textContent = "Unlisted / Custom";
+        typeBadge.textContent = "18-Class Density Scale";
+        descTitle.textContent = calc.descTitle;
+        notesText.textContent = "Calculating freight class strictly from pallet cubic volume and gross weight.";
+      } else {
+        const it = state.selectedItem;
+        pillEl.textContent = `NMFC #${it.code} Selected`;
+        pillEl.className = "text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200";
+        nmfcBadge.textContent = `NMFC #${it.code}`;
+        catBadge.textContent = it.cat;
+        typeBadge.textContent = it.mode === "density_11" ? "11-Sub Density" : it.mode === "fixed" ? "Fixed Class" : `Bracket (${it.classStr})`;
+        descTitle.textContent = it.desc;
+        notesText.textContent = it.notes;
+      }
+
+      // Update Live Result Panel
+      document.getElementById("result-nmfc-code").textContent = calc.nmfcCode;
+      document.getElementById("result-sub-item").textContent = calc.subItemText;
+      document.getElementById("result-code-type").textContent = calc.codeTypeLabel;
+      document.getElementById("result-freight-class").textContent = calc.finalClass;
+      document.getElementById("result-class-basis").textContent = calc.basisLabel;
+
+      // Rate tier badge color
+      const tierBadge = document.getElementById("rate-tier-badge");
+      if (calc.finalClass <= 65) {
+        tierBadge.textContent = "Low Cost Rate Tier";
+        tierBadge.className = "text-xs font-bold px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+      } else if (calc.finalClass <= 100) {
+        tierBadge.textContent = "Moderate Rate Tier";
+        tierBadge.className = "text-xs font-bold px-2.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30";
+      } else if (calc.finalClass <= 175) {
+        tierBadge.textContent = "High Rate Tier";
+        tierBadge.className = "text-xs font-bold px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30";
+      } else {
+        tierBadge.textContent = "Premium / Bulky Rate Tier";
+        tierBadge.className = "text-xs font-bold px-2.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30";
+      }
+
+      // Metrics
+      document.getElementById("metric-density").textContent = calc.pcf.toFixed(2);
+      document.getElementById("metric-volume").textContent = calc.totalCubicFeet.toFixed(2);
+      document.getElementById("metric-total-weight").textContent = calc.totalWeight.toLocaleString();
+
+      // Explanation Box
+      document.getElementById("raw-density-class-label").textContent = `Class ${calc.rawBracket.fClass} (${calc.rawBracket.rangeLabel})`;
+      document.getElementById("commodity-guideline-label").textContent = state.customMode ? "18-Class Scale" : state.selectedItem.classStr;
+      document.getElementById("classification-rule-note").textContent = calc.explanation;
+
+      // Optimization Tip & Alerts
+      document.getElementById("dock-optimization-tip").textContent = calc.optTip;
+      renderPalletSvg(calc.effLength, calc.effWidth, calc.effHeight, state.simulateOverhang);
+
+      const alertsEl = document.getElementById("special-alerts-container");
+      const alerts = [];
+      if (state.simulateOverhang) {
+        alerts.push(`<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40">Overhang Active (+4" L/W)</span>`);
+      }
+      if (calc.effLength >= 96 || calc.effWidth >= 96) {
+        alerts.push(`<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">Over-Length Rules (≥8 ft)</span>`);
+      }
+      if (calc.effHeight > 84) {
+        alerts.push(`<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40">Exceeds Standard 84" Door Height</span>`);
+      }
+      if (calc.hazmat) {
+        alerts.push(`<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-600 text-white">DOT HAZMAT Paperwork Required</span>`);
+      }
+      alertsEl.innerHTML = alerts.join("");
+
+      // BOL Line
+      document.getElementById("bol-preview-text").textContent = calc.bolLine;
+
+      // Keep 18-class scale table highlight synced
+      renderScaleTable(calc.rawBracket.fClass);
+    }
+
+    // =========================================================================
+    // 5. MANIFEST, DIRECTORY & SCALE TABLE RENDERERS
+    // =========================================================================
+    function saveManifest() {
+      try {
+        localStorage.setItem("nmfc_manifest_v1", JSON.stringify(state.manifest));
+      } catch (e) {}
+    }
+
+    function renderManifest() {
+      const badge = document.getElementById("manifest-count-badge");
+      badge.textContent = state.manifest.length;
+
+      const tbody = document.getElementById("manifest-table-body");
+      let totalUnits = 0;
+      let totalWeight = 0;
+      let totalCube = 0;
+      let highestClass = 0;
+
+      if (state.manifest.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="py-10 text-center text-slate-400 text-sm">
+              No items in your shipment manifest yet. Use the <strong>Classifier &amp; Calculator</strong> tab and click <strong>"Add to BOL Manifest"</strong>.
+            </td>
+          </tr>
+        `;
+      } else {
+        tbody.innerHTML = state.manifest.map((row, idx) => {
+          totalUnits += row.qty;
+          totalWeight += row.totalWeight;
+          totalCube += row.totalCubicFeet;
+          if (Number(row.finalClass) > highestClass) highestClass = Number(row.finalClass);
+
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="py-2.5 px-3 font-semibold">${row.qty} ${row.packaging}</td>
+              <td class="py-2.5 px-3 font-mono-code font-bold text-slate-900">#${row.nmfcCode} <span class="text-xs font-normal text-slate-500 block">${row.subItemText}</span></td>
+              <td class="py-2.5 px-3"><span class="font-mono-code font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">Class ${row.finalClass}</span></td>
+              <td class="py-2.5 px-3 font-medium text-slate-800">${row.descTitle}${row.hazmat ? ' <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">HAZMAT</span>' : ''}</td>
+              <td class="py-2.5 px-3 font-mono-code text-xs">${row.effLength}×${row.effWidth}×${row.effHeight}"</td>
+              <td class="py-2.5 px-3 font-mono-code text-xs">${row.totalCubicFeet.toFixed(2)} ft³</td>
+              <td class="py-2.5 px-3 font-mono-code font-semibold">${row.totalWeight.toLocaleString()} lbs</td>
+              <td class="py-2.5 px-3 font-mono-code text-xs">${row.pcf.toFixed(2)} PCF</td>
+              <td class="py-2.5 px-3 text-right no-print">
+                <button type="button" data-remove-idx="${idx}" class="remove-manifest-btn text-xs font-semibold text-rose-600 hover:text-rose-800 px-2 py-1 rounded hover:bg-rose-50">Remove</button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+
+        tbody.querySelectorAll(".remove-manifest-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const idx = Number(btn.getAttribute("data-remove-idx"));
+            state.manifest.splice(idx, 1);
+            saveManifest();
+            renderManifest();
+            showToast("Removed line item from manifest");
+          });
+        });
+      }
+
+      document.getElementById("manifest-total-units").textContent = totalUnits;
+      document.getElementById("manifest-total-weight").textContent = `${totalWeight.toLocaleString()} lbs`;
+      document.getElementById("manifest-total-cube").textContent = `${totalCube.toFixed(2)} ft³`;
+
+      const blendedPcf = totalCube > 0 ? (totalWeight / totalCube) : 0;
+      document.getElementById("manifest-blended-summary").textContent =
+        state.manifest.length > 0
+          ? `${blendedPcf.toFixed(2)} PCF • Max Class ${highestClass}`
+          : "—";
+    }
+
+    function renderDirectoryTable() {
+      const catSelect = document.getElementById("directory-category-select");
+      if (catSelect.options.length <= 1) {
+        const uniqueCats = Array.from(new Set(NMFC_ITEMS.map(i => i.cat)));
+        uniqueCats.forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c;
+          opt.textContent = c;
+          catSelect.appendChild(opt);
+        });
+      }
+
+      const q = state.dirSearch.trim().toLowerCase();
+      const cat = state.dirCategory;
+
+      const filtered = NMFC_ITEMS.filter(item => {
+        if (cat !== "ALL" && item.cat !== cat) return false;
+        if (!q) return true;
+        return (
+          item.code.toLowerCase().includes(q) ||
+          item.desc.toLowerCase().includes(q) ||
+          item.cat.toLowerCase().includes(q) ||
+          item.notes.toLowerCase().includes(q) ||
+          item.keywords.toLowerCase().includes(q)
+        );
+      });
+
+      const tbody = document.getElementById("directory-table-body");
+      tbody.innerHTML = filtered.map(item => `
+        <tr class="hover:bg-slate-50">
+          <td class="py-2.5 px-3 text-slate-400 font-mono-code text-xs">${item.id}</td>
+          <td class="py-2.5 px-3 font-mono-code font-bold text-slate-900">#${item.code}</td>
+          <td class="py-2.5 px-3"><span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">${item.cat}</span></td>
+          <td class="py-2.5 px-3 font-semibold text-slate-900">${item.desc}</td>
+          <td class="py-2.5 px-3 font-mono-code font-bold text-amber-800">${item.classStr}</td>
+          <td class="py-2.5 px-3 text-xs text-slate-600">${item.notes}</td>
+          <td class="py-2.5 px-3 text-right">
+            <button type="button" data-load-id="${item.id}" class="dir-load-btn text-xs font-bold px-2.5 py-1.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 transition whitespace-nowrap">
+              Load in Calculator
+            </button>
+          </td>
+        </tr>
+      `).join("");
+
+      tbody.querySelectorAll(".dir-load-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = Number(btn.getAttribute("data-load-id"));
+          const found = NMFC_ITEMS.find(x => x.id === id);
+          if (found) {
+            state.selectedItem = found;
+            state.customMode = false;
+            switchTab("calculator");
+            renderCommoditySearchResults();
+            updateAllCalculations();
+            showToast(`Loaded NMFC #${found.code} into calculator`);
+          }
+        });
+      });
+    }
+
+    function renderScaleTable(activeDensityClass) {
+      const tbody = document.getElementById("scale-table-body");
+      if (!tbody) return;
+      tbody.innerHTML = DENSITY_SCALE.map(row => {
+        const isCurrent = row.fClass === activeDensityClass;
+        const rowCls = isCurrent
+          ? "bg-amber-50/90 font-semibold border-l-4 border-l-amber-500"
+          : "hover:bg-slate-50";
+        return `
+          <tr class="${rowCls}">
+            <td class="py-2.5 px-3 font-mono-code font-bold text-slate-900">
+              Class ${row.fClass}
+              ${isCurrent ? '<span class="ml-1.5 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500 text-slate-950">Current PCF</span>' : ''}
+            </td>
+            <td class="py-2.5 px-3 font-mono-code text-xs text-slate-700">${row.rangeLabel}</td>
+            <td class="py-2.5 px-3 font-mono-code text-xs text-slate-600">${row.sub11}</td>
+            <td class="py-2.5 px-3 text-xs text-slate-600">${row.examples}</td>
+            <td class="py-2.5 px-3 text-xs font-semibold text-slate-700">${row.tier}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // =========================================================================
+    // 6. HELPERS: TABS, CLIPBOARD & TOAST
+    // =========================================================================
+    function switchTab(tabName) {
+      state.activeTab = tabName;
+      const views = ["calculator", "manifest", "directory", "scale"];
+      views.forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.toggle("hidden", v !== tabName);
+      });
+
+      document.querySelectorAll(".nav-tab-btn").forEach(btn => {
+        const isTarget = btn.getAttribute("data-tab") === tabName;
+        if (isTarget) {
+          btn.className = "nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all bg-amber-500 text-slate-950 shadow-sm whitespace-nowrap flex items-center gap-1.5";
+        } else {
+          btn.className = "nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white hover:bg-slate-700/60 whitespace-nowrap flex items-center gap-1.5";
+        }
+      });
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const container = document.getElementById("toast-container");
+      const msgEl = document.getElementById("toast-message");
+      msgEl.textContent = msg;
+      container.classList.remove("opacity-0", "translate-y-2");
+      container.classList.add("opacity-100", "translate-y-0");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        container.classList.remove("opacity-100", "translate-y-0");
+        container.classList.add("opacity-0", "translate-y-2");
+      }, 2600);
+    }
+
+    function copyTextToClipboard(text, successMsg) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(successMsg);
+        }).catch(() => {
+          fallbackCopy(text, successMsg);
+        });
+      } else {
+        fallbackCopy(text, successMsg);
+      }
+    }
+
+    function fallbackCopy(text, successMsg) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        showToast(successMsg);
+      } catch (e) {
+        showToast("Copy ready — select text manually");
+      }
+      document.body.removeChild(ta);
+    }
+
+    // =========================================================================
+    // 7. EVENT LISTENERS & INITIALIZATION
+    // =========================================================================
+    function initApp() {
+      // Tab Navigation
+      document.querySelectorAll(".nav-tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          switchTab(btn.getAttribute("data-tab"));
+        });
+      });
+
+      // Commodity Search Input
+      const searchInput = document.getElementById("commodity-search-input");
+      searchInput.addEventListener("input", e => {
+        state.searchQuery = e.target.value;
+        // Auto-select top match if typing a matching keyword or code
+        const q = state.searchQuery.trim().toLowerCase();
+        if (q) {
+          const topMatch = NMFC_ITEMS.find(item =>
+            item.code.toLowerCase() === q ||
+            item.desc.toLowerCase().includes(q) ||
+            item.keywords.toLowerCase().includes(q)
+          );
+          if (topMatch) {
+            state.selectedItem = topMatch;
+            state.customMode = false;
+          } else {
+            state.customMode = true;
+            state.customName = state.searchQuery.trim();
+          }
+        }
+        renderCommoditySearchResults();
+        updateAllCalculations();
+      });
+
+      document.getElementById("clear-commodity-btn").addEventListener("click", () => {
+        searchInput.value = "";
+        state.searchQuery = "";
+        state.selectedCategory = "ALL";
+        state.customMode = false;
+        renderCategoryPills();
+        renderCommoditySearchResults();
+        updateAllCalculations();
+      });
+
+      // Condition modifier (KD / SU)
+      document.getElementById("condition-modifier-select").addEventListener("change", e => {
+        state.conditionModifier = e.target.value;
+        updateAllCalculations();
+      });
+
+      // Dimension & Weight Inputs
+      const bindNumeric = (id, key) => {
+        const el = document.getElementById(id);
+        el.addEventListener("input", e => {
+          state[key] = parseFloat(e.target.value) || 0;
+          updateAllCalculations();
+        });
+      };
+      bindNumeric("input-length", "length");
+      bindNumeric("input-width", "width");
+      bindNumeric("input-height", "height");
+      bindNumeric("input-weight", "weightPerUnit");
+      bindNumeric("input-qty", "qty");
+
+      document.getElementById("input-packaging").addEventListener("change", e => {
+        state.packaging = e.target.value;
+        updateAllCalculations();
+      });
+
+      // Quick Footprint Buttons
+      document.querySelectorAll(".pallet-preset-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.length = Number(btn.getAttribute("data-l"));
+          state.width = Number(btn.getAttribute("data-w"));
+          document.getElementById("input-length").value = state.length;
+          document.getElementById("input-width").value = state.width;
+          updateAllCalculations();
+          showToast(`Footprint set to ${state.length}×${state.width}"`);
+        });
+      });
+
+      // Overhang & Tare
+      document.getElementById("toggle-overhang").addEventListener("change", e => {
+        state.simulateOverhang = e.target.checked;
+        updateAllCalculations();
+      });
+
+      document.getElementById("add-pallet-tare-btn").addEventListener("click", () => {
+        state.weightPerUnit = (Number(state.weightPerUnit) || 0) + 40;
+        document.getElementById("input-weight").value = state.weightPerUnit;
+        updateAllCalculations();
+        showToast("Added 40 lbs pallet tare weight");
+      });
+
+      // Quick Dock Preset Scenarios
+      document.querySelectorAll(".preset-scenario-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const type = btn.getAttribute("data-preset");
+          if (type === "plastics") {
+            state.selectedItem = NMFC_ITEMS.find(i => i.code === "156600");
+            state.customMode = false;
+            state.conditionModifier = "standard";
+            state.length = 48; state.width = 40; state.height = 60; state.weightPerUnit = 420; state.qty = 1;
+          } else if (type === "brakes") {
+            state.selectedItem = NMFC_ITEMS.find(i => i.code === "18690");
+            state.customMode = false;
+            state.conditionModifier = "standard";
+            state.length = 48; state.width = 40; state.height = 36; state.weightPerUnit = 1650; state.qty = 1;
+          } else if (type === "machinery") {
+            state.selectedItem = NMFC_ITEMS.find(i => i.code === "115700");
+            state.customMode = false;
+            state.conditionModifier = "standard";
+            state.length = 48; state.width = 42; state.height = 48; state.weightPerUnit = 780; state.qty = 1;
+          } else if (type === "furniture_su") {
+            state.selectedItem = NMFC_ITEMS.find(i => i.code === "79400");
+            state.customMode = false;
+            state.conditionModifier = "su_assembled";
+            state.length = 64; state.width = 36; state.height = 34; state.weightPerUnit = 185; state.qty = 1;
+          } else if (type === "reset") {
+            state.selectedItem = NMFC_ITEMS.find(i => i.code === "156600");
+            state.customMode = false;
+            state.searchQuery = "";
+            searchInput.value = "";
+            state.conditionModifier = "standard";
+            state.length = 48; state.width = 40; state.height = 48; state.weightPerUnit = 500; state.qty = 1;
+            state.simulateOverhang = false;
+            document.getElementById("toggle-overhang").checked = false;
+          }
+          document.getElementById("input-length").value = state.length;
+          document.getElementById("input-width").value = state.width;
+          document.getElementById("input-height").value = state.height;
+          document.getElementById("input-weight").value = state.weightPerUnit;
+          document.getElementById("input-qty").value = state.qty;
+          document.getElementById("condition-modifier-select").value = state.conditionModifier;
+          renderCommoditySearchResults();
+          updateAllCalculations();
+          showToast("Loaded scenario into calculator");
+        });
+      });
+
+      // Copy BOL Line & Add to Manifest
+      document.getElementById("copy-bol-btn").addEventListener("click", () => {
+        const calc = computeClassification();
+        copyTextToClipboard(calc.bolLine, "Copied BOL line to clipboard!");
+      });
+
+      document.getElementById("add-to-manifest-btn").addEventListener("click", () => {
+        const calc = computeClassification();
+        state.manifest.push({
+          qty: calc.qty,
+          packaging: state.packaging,
+          nmfcCode: calc.nmfcCode,
+          subItemText: calc.subItemText,
+          finalClass: calc.finalClass,
+          descTitle: calc.descTitle,
+          effLength: calc.effLength,
+          effWidth: calc.effWidth,
+          effHeight: calc.effHeight,
+          totalCubicFeet: calc.totalCubicFeet,
+          totalWeight: calc.totalWeight,
+          pcf: calc.pcf,
+          hazmat: calc.hazmat,
+          bolLine: calc.bolLine
+        });
+        saveManifest();
+        renderManifest();
+        showToast(`Added ${calc.qty} ${state.packaging} (Class ${calc.finalClass}) to BOL Manifest`);
+      });
+
+      // Manifest Tab Controls
+      document.getElementById("manifest-go-calc-btn").addEventListener("click", () => {
+        switchTab("calculator");
+      });
+
+      document.getElementById("manifest-copy-all-btn").addEventListener("click", () => {
+        if (state.manifest.length === 0) {
+          showToast("Manifest is empty");
+          return;
+        }
+        const lines = state.manifest.map((m, i) => `${i + 1}. ${m.bolLine}`).join("\n");
+        copyTextToClipboard(lines, "Copied full shipment manifest to clipboard!");
+      });
+
+      document.getElementById("manifest-export-csv-btn").addEventListener("click", () => {
+        if (state.manifest.length === 0) {
+          showToast("Manifest is empty");
+          return;
+        }
+        const headers = ["Units", "Packaging", "NMFC Code", "Sub-Item", "Freight Class", "Commodity Description", "Length(in)", "Width(in)", "Height(in)", "Total Cube(ft3)", "Total Weight(lbs)", "Density(PCF)"];
+        const rows = state.manifest.map(m => [
+          m.qty,
+          `"${m.packaging}"`,
+          `"${m.nmfcCode}"`,
+          `"${m.subItemText}"`,
+          m.finalClass,
+          `"${m.descTitle.replace(/"/g, '""')}"`,
+          m.effLength,
+          m.effWidth,
+          m.effHeight,
+          m.totalCubicFeet.toFixed(2),
+          m.totalWeight,
+          m.pcf.toFixed(2)
+        ].join(","));
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "nmfc_bol_manifest.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("Downloaded nmfc_bol_manifest.csv");
+      });
+
+      document.getElementById("manifest-print-btn").addEventListener("click", () => {
+        window.print();
+      });
+
+      document.getElementById("manifest-clear-btn").addEventListener("click", () => {
+        state.manifest = [];
+        saveManifest();
+        renderManifest();
+        showToast("Cleared shipment manifest");
+      });
+
+      // Directory Tab Search & Filter
+      document.getElementById("directory-search-input").addEventListener("input", e => {
+        state.dirSearch = e.target.value;
+        renderDirectoryTable();
+      });
+
+      document.getElementById("directory-category-select").addEventListener("change", e => {
+        state.dirCategory = e.target.value;
+        renderDirectoryTable();
+      });
+
+      // Load any user-added custom NMFC items from localStorage
+      try {
+        const savedCustom = localStorage.getItem("nmfc_custom_items_v1");
+        if (savedCustom) {
+          const parsedCustom = JSON.parse(savedCustom);
+          if (Array.isArray(parsedCustom)) {
+            parsedCustom.forEach(ci => {
+              if (!NMFC_ITEMS.some(x => x.code === ci.code && x.desc === ci.desc)) {
+                NMFC_ITEMS.push(ci);
+              }
+            });
+          }
+        }
+      } catch (e) {}
+
+      function saveCustomItemToStorage(newItem) {
+        try {
+          const existing = JSON.parse(localStorage.getItem("nmfc_custom_items_v1") || "[]");
+          existing.push(newItem);
+          localStorage.setItem("nmfc_custom_items_v1", JSON.stringify(existing));
+        } catch (e) {}
+      }
+
+      const modalBackdrop = document.getElementById("import-modal-backdrop");
+      const openModal = () => {
+        modalBackdrop.classList.remove("hidden");
+        modalBackdrop.classList.add("flex");
+        document.getElementById("custom-count-status").textContent = `Total active database: ${NMFC_ITEMS.length} NMFC codes`;
+      };
+      const closeModal = () => {
+        modalBackdrop.classList.add("hidden");
+        modalBackdrop.classList.remove("flex");
+      };
+
+      document.getElementById("open-import-modal-btn").addEventListener("click", openModal);
+      document.getElementById("calc-open-import-btn").addEventListener("click", openModal);
+      document.getElementById("close-import-modal-btn").addEventListener("click", closeModal);
+
+      document.getElementById("save-single-custom-btn").addEventListener("click", () => {
+        const code = document.getElementById("custom-add-code").value.trim();
+        const desc = document.getElementById("custom-add-desc").value.trim();
+        const cat = document.getElementById("custom-add-cat").value.trim() || "Custom SKU";
+        const modeVal = document.getElementById("custom-add-mode").value;
+        const notes = document.getElementById("custom-add-notes").value.trim() || "Custom added commodity";
+
+        if (!code || !desc) {
+          showToast("Please enter both an NMFC Code and Description");
+          return;
+        }
+
+        const isDensity = modeVal === "density_11";
+        const numClass = isDensity ? 60 : Number(modeVal);
+        const newItem = {
+          id: NMFC_ITEMS.length + 1,
+          code: code,
+          desc: desc,
+          cat: cat,
+          classStr: isDensity ? "Class 50–400 (Density)" : `Class ${numClass}`,
+          minClass: isDensity ? 60 : numClass,
+          maxClass: isDensity ? 400 : numClass,
+          mode: isDensity ? "density_11" : "fixed",
+          hazmat: false,
+          notes: notes,
+          keywords: `${code} ${desc.toLowerCase()} ${notes.toLowerCase()}`
+        };
+
+        NMFC_ITEMS.unshift(newItem);
+        saveCustomItemToStorage(newItem);
+        state.selectedItem = newItem;
+        state.customMode = false;
+        renderCommoditySearchResults();
+        renderDirectoryTable();
+        updateAllCalculations();
+        closeModal();
+        showToast(`Added NMFC #${code} (${desc}) to database!`);
+      });
+
+      document.getElementById("import-bulk-csv-btn").addEventListener("click", () => {
+        const raw = document.getElementById("bulk-csv-textarea").value.trim();
+        if (!raw) {
+          showToast("Paste at least one CSV line first");
+          return;
+        }
+        const lines = raw.split(/\r?\n/);
+        let added = 0;
+        lines.forEach(line => {
+          const parts = line.split(",").map(s => s.trim());
+          if (parts.length >= 2 && parts[0] && parts[1]) {
+            const code = parts[0];
+            const desc = parts[1];
+            const cat = parts[2] || "Custom Imported";
+            const clsRaw = (parts[3] || "DENSITY").toUpperCase();
+            const notes = parts.slice(4).join(", ") || "Imported via CSV";
+            const isDensity = clsRaw.includes("DENSITY") || isNaN(Number(clsRaw));
+            const numClass = isDensity ? 70 : Number(clsRaw);
+            const newItem = {
+              id: NMFC_ITEMS.length + 1,
+              code,
+              desc,
+              cat,
+              classStr: isDensity ? "Class 50–400 (Density)" : `Class ${numClass}`,
+              minClass: isDensity ? 60 : numClass,
+              maxClass: isDensity ? 400 : numClass,
+              mode: isDensity ? "density_11" : "fixed",
+              hazmat: false,
+              notes,
+              keywords: `${code} ${desc.toLowerCase()} ${notes.toLowerCase()}`
+            };
+            NMFC_ITEMS.push(newItem);
+            saveCustomItemToStorage(newItem);
+            added++;
+          }
+        });
+        document.getElementById("bulk-csv-textarea").value = "";
+        renderCommoditySearchResults();
+        renderDirectoryTable();
+        updateAllCalculations();
+        closeModal();
+        showToast(`Imported ${added} custom NMFC code(s)!`);
+      });
+
+      // Initial Render
+      renderCategoryPills();
+      renderCommoditySearchResults();
+      renderManifest();
+      renderDirectoryTable();
+      updateAllCalculations();
+    }
+
+    window.addEventListener("DOMContentLoaded", initApp);
+  </script>
+</body>
+</html>
