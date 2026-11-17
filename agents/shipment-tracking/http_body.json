@@ -1,0 +1,135 @@
+{
+  "model": "claude-haiku-5-5",
+  "max_tokens": 1024,
+  "system": "@{variables('TrackingSystemPrompt')}",
+  "messages": [
+    {
+      "role": "user",
+      "content": "FULL CIRCLE ORDER (F999 row, pulled @{utcNow()}):\n@{variables('LoadRow')}\n\nLAST UPDATE SBS SENT THIS CUSTOMER FOR THIS LOAD (null if none):\n@{variables('LastSentUpdate')}\n\nCARRIER EMAILS MENTIONING THIS LOAD, LAST 48 HOURS, OLDEST FIRST:\n@{variables('LoadEvidence')}\n\nCurrent time: @{convertFromUtc(utcNow(),'Pacific Standard Time')} Pacific."
+    }
+  ],
+  "output_config": {
+    "format": {
+      "type": "json_schema",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "order_number",
+          "customer_reference",
+          "status_class",
+          "status_changed",
+          "current_location",
+          "eta",
+          "eta_timezone",
+          "eta_source",
+          "evidence",
+          "discrepancy",
+          "confidence",
+          "reason",
+          "customer_update"
+        ],
+        "properties": {
+          "order_number": {
+            "type": "string",
+            "description": "Full Circle order number exactly as given in the F999 row."
+          },
+          "customer_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The customer's own PO, BOL or reference from the F999 row. Null if none."
+          },
+          "status_class": {
+            "type": "string",
+            "enum": [
+              "ON_TIME",
+              "AT_RISK",
+              "DELAYED",
+              "PROBLEM",
+              "UNKNOWN"
+            ]
+          },
+          "status_changed": {
+            "type": "boolean",
+            "description": "True only if class, ETA or location differs from the last update SBS sent."
+          },
+          "current_location": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "City, State from the newest evidence. Null if not stated anywhere."
+          },
+          "eta": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO 8601 date-time for delivery from the newest evidence. Null if no source states one."
+          },
+          "eta_timezone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "IANA zone of the delivery location, for example America/Los_Angeles."
+          },
+          "eta_source": {
+            "type": "string",
+            "enum": [
+              "full_circle",
+              "carrier_email",
+              "none"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "description": "One line quoting or citing the evidence the status rests on, with its timestamp."
+          },
+          "discrepancy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "One line when Full Circle and carrier email disagree. Null otherwise."
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "One sentence for the rep: why this class and this confidence."
+          },
+          "customer_update": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "subject",
+              "body"
+            ],
+            "properties": {
+              "subject": {
+                "type": "string",
+                "description": "[SBS Update] <customer reference> - <plain status word>"
+              },
+              "body": {
+                "type": "string",
+                "description": "Three to six lines, plain text."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
