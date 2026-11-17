@@ -1,0 +1,1180 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "connectionName": "shared-sharepointon-fc90373c-4a0d-4f7f-a832-1f72c21b8b91",
+        "source": "Embedded",
+        "id": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+        "tier": "NotSpecified"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Button",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        }
+      },
+      "actions": {
+        "Create_list": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.List\"}, \"BaseTemplate\": 100, \"Title\": \"Shipment Status Log\", \"Description\": \"Agent 3 Shipment Tracking Updater: one row per changed load, the audit log of every customer update. Title = Full Circle order number.\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_Customer": {
+          "runAfter": {
+            "Create_list": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 2, \"Title\": \"Customer\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_Customer": {
+          "runAfter": {
+            "Add_Customer": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('Customer')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_CustomerRef": {
+          "runAfter": {
+            "View_Customer": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 2, \"Title\": \"CustomerRef\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_CustomerRef": {
+          "runAfter": {
+            "Add_CustomerRef": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('CustomerRef')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_Rep": {
+          "runAfter": {
+            "View_CustomerRef": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 2, \"Title\": \"Rep\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_Rep": {
+          "runAfter": {
+            "Add_Rep": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('Rep')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_StatusClass": {
+          "runAfter": {
+            "View_Rep": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.FieldChoice\"}, \"FieldTypeKind\": 6, \"Title\": \"StatusClass\", \"Choices\": {\"results\": [\"ON_TIME\", \"AT_RISK\", \"DELAYED\", \"PROBLEM\", \"UNKNOWN\"]}, \"EditFormat\": 0}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_StatusClass": {
+          "runAfter": {
+            "Add_StatusClass": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('StatusClass')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_Location": {
+          "runAfter": {
+            "View_StatusClass": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 2, \"Title\": \"Location\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_Location": {
+          "runAfter": {
+            "Add_Location": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('Location')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_ETA": {
+          "runAfter": {
+            "View_Location": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 4, \"Title\": \"ETA\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_ETA": {
+          "runAfter": {
+            "Add_ETA": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('ETA')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_ETASource": {
+          "runAfter": {
+            "View_ETA": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.FieldChoice\"}, \"FieldTypeKind\": 6, \"Title\": \"ETASource\", \"Choices\": {\"results\": [\"full_circle\", \"carrier_email\", \"none\"]}, \"EditFormat\": 0}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_ETASource": {
+          "runAfter": {
+            "Add_ETASource": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('ETASource')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_Evidence": {
+          "runAfter": {
+            "View_ETASource": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 3, \"Title\": \"Evidence\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_Evidence": {
+          "runAfter": {
+            "Add_Evidence": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('Evidence')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_Discrepancy": {
+          "runAfter": {
+            "View_Evidence": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 3, \"Title\": \"Discrepancy\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_Discrepancy": {
+          "runAfter": {
+            "Add_Discrepancy": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('Discrepancy')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_Confidence": {
+          "runAfter": {
+            "View_Discrepancy": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.FieldChoice\"}, \"FieldTypeKind\": 6, \"Title\": \"Confidence\", \"Choices\": {\"results\": [\"high\", \"medium\", \"low\"]}, \"EditFormat\": 0}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_Confidence": {
+          "runAfter": {
+            "Add_Confidence": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('Confidence')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_Reason": {
+          "runAfter": {
+            "View_Confidence": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 3, \"Title\": \"Reason\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_Reason": {
+          "runAfter": {
+            "Add_Reason": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('Reason')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_Recipient": {
+          "runAfter": {
+            "View_Reason": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 2, \"Title\": \"Recipient\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_Recipient": {
+          "runAfter": {
+            "Add_Recipient": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('Recipient')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_DraftSubject": {
+          "runAfter": {
+            "View_Recipient": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 2, \"Title\": \"DraftSubject\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_DraftSubject": {
+          "runAfter": {
+            "Add_DraftSubject": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('DraftSubject')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_DraftBody": {
+          "runAfter": {
+            "View_DraftSubject": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 3, \"Title\": \"DraftBody\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_DraftBody": {
+          "runAfter": {
+            "Add_DraftBody": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('DraftBody')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_SendState": {
+          "runAfter": {
+            "View_DraftBody": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.FieldChoice\"}, \"FieldTypeKind\": 6, \"Title\": \"SendState\", \"Choices\": {\"results\": [\"Draft\", \"Approved\", \"Sent\", \"Held\", \"Logged\"]}, \"EditFormat\": 0, \"DefaultValue\": \"Draft\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_SendState": {
+          "runAfter": {
+            "Add_SendState": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('SendState')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_SentAt": {
+          "runAfter": {
+            "View_SendState": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 4, \"Title\": \"SentAt\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_SentAt": {
+          "runAfter": {
+            "Add_SentAt": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('SentAt')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_SentBy": {
+          "runAfter": {
+            "View_SentAt": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.FieldUser\"}, \"FieldTypeKind\": 20, \"Title\": \"SentBy\", \"SelectionMode\": 0}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_SentBy": {
+          "runAfter": {
+            "Add_SentBy": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('SentBy')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Add_RunId": {
+          "runAfter": {
+            "View_SentBy": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"FieldTypeKind\": 2, \"Title\": \"RunId\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "View_RunId": {
+          "runAfter": {
+            "Add_RunId": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('All Items')/viewfields/addviewfield('RunId')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": ""
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Rename_Title_column": {
+          "runAfter": {
+            "View_RunId": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/fields/getbytitle('Title')",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose",
+                "X-HTTP-Method": "MERGE",
+                "IF-MATCH": "*"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.Field\"}, \"Title\": \"OrderNumber\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Create_Needs_Me_view": {
+          "runAfter": {
+            "Rename_Title_column": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.View\"}, \"Title\": \"Needs Me\", \"PersonalView\": false, \"RowLimit\": 100, \"ViewQuery\": \"<Where><Eq><FieldRef Name='SendState'/><Value Type='Choice'>Draft</Value></Eq></Where><OrderBy><FieldRef Name='StatusClass'/><FieldRef Name='Created' Ascending='FALSE'/></OrderBy>\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Create_Sent_today_view": {
+          "runAfter": {
+            "Create_Needs_Me_view": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "parameters": {
+              "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+              "parameters/method": "POST",
+              "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views",
+              "parameters/headers": {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+              },
+              "parameters/body": "{\"__metadata\": {\"type\": \"SP.View\"}, \"Title\": \"Sent today\", \"PersonalView\": false, \"RowLimit\": 200, \"ViewQuery\": \"<Where><And><Eq><FieldRef Name='SendState'/><Value Type='Choice'>Sent</Value></Eq><Geq><FieldRef Name='SentAt'/><Value Type='DateTime'><Today/></Value></Geq></And></Where><OrderBy><FieldRef Name='SentAt' Ascending='FALSE'/></OrderBy>\"}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "NeedsMe_fields": {
+          "runAfter": {
+            "Create_Sent_today_view": [
+              "Succeeded"
+            ]
+          },
+          "type": "Foreach",
+          "foreach": [
+            "Title",
+            "Customer",
+            "CustomerRef",
+            "Rep",
+            "StatusClass",
+            "ETA",
+            "Confidence",
+            "Recipient",
+            "DraftSubject",
+            "SendState",
+            "SentAt"
+          ],
+          "actions": {
+            "Add_to_NeedsMe_fields": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "HttpRequest"
+                },
+                "parameters": {
+                  "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+                  "parameters/method": "POST",
+                  "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('Needs Me')/viewfields/addviewfield('@{items('NeedsMe_fields')}')",
+                  "parameters/headers": {
+                    "accept": "application/json;odata=verbose",
+                    "content-type": "application/json;odata=verbose"
+                  },
+                  "parameters/body": ""
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "repetitions": 1
+            }
+          }
+        },
+        "SentToday_fields": {
+          "runAfter": {
+            "NeedsMe_fields": [
+              "Succeeded"
+            ]
+          },
+          "type": "Foreach",
+          "foreach": [
+            "Title",
+            "Customer",
+            "CustomerRef",
+            "Rep",
+            "StatusClass",
+            "ETA",
+            "Confidence",
+            "Recipient",
+            "DraftSubject",
+            "SendState",
+            "SentAt"
+          ],
+          "actions": {
+            "Add_to_SentToday_fields": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "HttpRequest"
+                },
+                "parameters": {
+                  "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+                  "parameters/method": "POST",
+                  "parameters/uri": "_api/web/lists/getbytitle('Shipment Status Log')/views/getbytitle('Sent today')/viewfields/addviewfield('@{items('SentToday_fields')}')",
+                  "parameters/headers": {
+                    "accept": "application/json;odata=verbose",
+                    "content-type": "application/json;odata=verbose"
+                  },
+                  "parameters/body": ""
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "repetitions": 1
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

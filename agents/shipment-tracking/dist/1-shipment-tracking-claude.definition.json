@@ -1,0 +1,967 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "connectionName": "shared-sharepointon-42ce2c9a-e824-4356-b8c3-7d67a892c63d",
+        "source": "Embedded",
+        "id": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+        "tier": "NotSpecified"
+      },
+      "shared_office365": {
+        "connectionName": "shared-office365-abd71a52-2910-4afe-8494-a9fcd0e32e91",
+        "source": "Embedded",
+        "id": "/providers/Microsoft.PowerApps/apis/shared_office365",
+        "tier": "NotSpecified"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "Every_2_hours_weekdays": {
+          "recurrence": {
+            "frequency": "Week",
+            "interval": 1,
+            "timeZone": "Pacific Standard Time",
+            "schedule": {
+              "weekDays": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday"
+              ],
+              "hours": [
+                6,
+                8,
+                10,
+                12,
+                14,
+                16,
+                18
+              ],
+              "minutes": [
+                0
+              ]
+            }
+          },
+          "type": "Recurrence",
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Init_prompt": {
+          "runAfter": {},
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "TrackingSystemPrompt",
+                "type": "string",
+                "value": "You are the shipment tracking agent for Sterling Brokerage Services (SBS). Power Automate hands you one active load at a time: the load's row from the Full Circle TMS F999 report, the last status SBS already told the customer (if any), and any carrier, driver or dispatcher emails from the last 48 hours that mention this load. You read them, decide the load's status, and draft the customer update. You never send anything; Power Automate and a person do that.\n\nSOURCES OF TRUTH, in priority order\n1. Full Circle: the load's status, stops, appointment times, planned delivery, actual pickup or delivery times, and the pings from SBS's in-house tracking link (location and timestamp). Full Circle is the system of record. Aljex is retired; an Aljex number in an old email is history, not a source.\n2. Carrier email: a check call, a driver text forwarded by dispatch. Newer beats older.\n3. Nothing else. If the only evidence is a guess, the status is UNKNOWN.\nWhen Full Circle and a carrier email disagree, say so in discrepancy and classify by the worse of the two. Never pick one silently.\n\nSTATUS CLASSES\nON_TIME: picked up or rolling, latest evidence puts delivery at or before the planned delivery window.\nAT_RISK: no tracking ping, carrier contact or Full Circle change in 4+ hours on an in-transit load, or the ETA is inside 2 hours of the end of the delivery window, or the carrier has not confirmed pickup within 2 hours of the pickup appointment.\nDELAYED: evidence puts delivery after the planned window, or pickup was missed.\nPROBLEM: breakdown, accident, refusal, OS&D (over, short or damaged), detention over 2 hours, carrier unreachable after two attempts, cargo theft indicator, or any safety event.\nUNKNOWN: in transit but no evidence newer than the last update already sent to the customer.\n\nRULES\n- Never invent an ETA, a location, or a reason. Every ETA names its source (full_circle or carrier_email) and quotes the evidence in one line. A tracking ping counts as full_circle.\n- status_changed is true only when the class, ETA, or location differs from the last update SBS sent. If nothing changed, status_changed is false and customer_update is null.\n- The customer gets the customer's own reference (PO, BOL or their order number) first; the Full Circle order number only if no customer reference exists.\n- The customer update never mentions the carrier's name, the carrier's internal problem, a rate, or margin. Say \"the driver\" or \"our carrier partner\".\n- Keep the update to three to six lines: reference, origin to destination, status, current location if known, ETA with its time zone, and when they will hear from us next. One sentence of apology at most for a delay. No speculation about cause unless Full Circle or the carrier stated it.\n- Confidence is high only when Full Circle and the newest carrier email agree, or when the newest tracking ping or Full Circle status is less than 4 hours old. Medium when one source is stale. Low when sources conflict or the only evidence is indirect.\n- Write in plain, direct, professional English. No exclamation points. No emoji.\n"
+              }
+            ]
+          }
+        },
+        "Init_DraftCount": {
+          "runAfter": {
+            "Init_prompt": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "DraftCount",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Init_UrgentCount": {
+          "runAfter": {
+            "Init_DraftCount": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "UrgentCount",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Init_DigestRows": {
+          "runAfter": {
+            "Init_UrgentCount": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "DigestRows",
+                "type": "string",
+                "value": ""
+              }
+            ]
+          }
+        },
+        "Get_FC_token": {
+          "runAfter": {
+            "Init_DigestRows": [
+              "Succeeded"
+            ]
+          },
+          "type": "Http",
+          "inputs": {
+            "method": "POST",
+            "uri": "https://gateway.api.fullcircletms.com/auth/token",
+            "headers": {
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            },
+            "body": {
+              "clientID": "PASTE-FULL-CIRCLE-CLIENT-ID",
+              "clientSecret": "PASTE-FULL-CIRCLE-CLIENT-SECRET"
+            },
+            "retryPolicy": {
+              "type": "fixed",
+              "count": 3,
+              "interval": "PT20S"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Active_manifests": {
+          "runAfter": {
+            "Get_FC_token": [
+              "Succeeded"
+            ]
+          },
+          "type": "Http",
+          "inputs": {
+            "method": "GET",
+            "uri": "https://gateway.api.fullcircletms.com/dispatch/manifests/active",
+            "headers": {
+              "Authorization": "Bearer @{body('Get_FC_token')?['access_token']}",
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            },
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT20S",
+              "minimumInterval": "PT20S",
+              "maximumInterval": "PT3M"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs"
+              ]
+            }
+          }
+        },
+        "F999_contacts": {
+          "runAfter": {
+            "Get_FC_token": [
+              "Succeeded"
+            ]
+          },
+          "type": "Http",
+          "inputs": {
+            "method": "POST",
+            "uri": "https://gateway.api.fullcircletms.com/reports/f999",
+            "headers": {
+              "Authorization": "Bearer @{body('Get_FC_token')?['access_token']}",
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            },
+            "body": {
+              "startDate": "@{addDays(utcNow(), -31)}",
+              "endDate": "@{utcNow()}",
+              "includeManifests": false
+            },
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 6,
+              "interval": "PT30S",
+              "minimumInterval": "PT30S",
+              "maximumInterval": "PT5M"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs"
+              ]
+            }
+          }
+        },
+        "For_each_manifest": {
+          "runAfter": {
+            "Active_manifests": [
+              "Succeeded"
+            ],
+            "F999_contacts": [
+              "Succeeded"
+            ]
+          },
+          "type": "Foreach",
+          "foreach": "@coalesce(body('Active_manifests')?['manifests'], json('[]'))",
+          "actions": {
+            "For_each_order": {
+              "runAfter": {},
+              "type": "Foreach",
+              "foreach": "@coalesce(items('For_each_manifest')?['orders'], json('[]'))",
+              "actions": {
+                "Order_number": {
+                  "runAfter": {},
+                  "type": "Compose",
+                  "inputs": "@string(items('For_each_order')?['orderNumber'])"
+                },
+                "Track": {
+                  "runAfter": {
+                    "Order_number": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Http",
+                  "inputs": {
+                    "method": "GET",
+                    "uri": "https://gateway.api.fullcircletms.com/tracktrace/byordernumber?orderNumber=@{outputs('Order_number')}",
+                    "headers": {
+                      "Authorization": "Bearer @{body('Get_FC_token')?['access_token']}",
+                      "Content-Type": "application/json",
+                      "Accept": "application/json"
+                    },
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT20S",
+                      "minimumInterval": "PT20S",
+                      "maximumInterval": "PT3M"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs"
+                      ]
+                    }
+                  }
+                },
+                "F999_match": {
+                  "runAfter": {
+                    "Order_number": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@coalesce(body('F999_contacts')?['records'], json('[]'))",
+                    "where": "@equals(string(item()?['orderNumber']), outputs('Order_number'))"
+                  }
+                },
+                "F999_row": {
+                  "runAfter": {
+                    "F999_match": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@first(body('F999_match'))"
+                },
+                "Load_context": {
+                  "runAfter": {
+                    "Track": [
+                      "Succeeded"
+                    ],
+                    "F999_row": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": {
+                    "orderNumber": "@outputs('Order_number')",
+                    "customer": "@coalesce(outputs('F999_row')?['authorizationCustomerName'], outputs('F999_row')?['billToName'], '')",
+                    "customerReference": "@coalesce(outputs('F999_row')?['customerReferenceID'], outputs('F999_row')?['orderReferenceNumber'], '')",
+                    "rep": "@coalesce(outputs('F999_row')?['salesPerson1Name'], outputs('F999_row')?['bookedUser'], '')",
+                    "bookingContactEmail": "@coalesce(outputs('F999_row')?['authorizationCustomerContactEmail'], '')",
+                    "bookingContactName": "@trim(concat(coalesce(outputs('F999_row')?['authorizationCustomerContactFirstName'], ''), ' ', coalesce(outputs('F999_row')?['authorizationCustomerContactLastName'], '')))",
+                    "firstPickup": "@concat(coalesce(outputs('F999_row')?['firstPickupName'], ''), ', ', coalesce(outputs('F999_row')?['firstPickupCity'], ''), ', ', coalesce(outputs('F999_row')?['firstPickupStateCode'], ''))",
+                    "lastDelivery": "@concat(coalesce(outputs('F999_row')?['lastDeliveryName'], ''), ', ', coalesce(outputs('F999_row')?['lastDeliveryCity'], ''), ', ', coalesce(outputs('F999_row')?['lastDeliveryStateCode'], ''))",
+                    "manifestPosition": "@items('For_each_manifest')?['position']",
+                    "manifestNextStop": "@items('For_each_manifest')?['nextStop']",
+                    "manifestLastDelivery": "@items('For_each_manifest')?['lastDelivery']",
+                    "trackTrace": "@body('Track')"
+                  }
+                },
+                "Last_sent": {
+                  "runAfter": {
+                    "Order_number": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetItems"
+                    },
+                    "parameters": {
+                      "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+                      "table": "Shipment Status Log",
+                      "$filter": "Title eq '@{outputs('Order_number')}' and SendState eq 'Sent'",
+                      "$orderby": "SentAt desc",
+                      "$top": 1
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Any_row": {
+                  "runAfter": {
+                    "Order_number": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetItems"
+                    },
+                    "parameters": {
+                      "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+                      "table": "Shipment Status Log",
+                      "$filter": "Title eq '@{outputs('Order_number')}'",
+                      "$top": 1
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Mail_mine": {
+                  "runAfter": {
+                    "Order_number": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                      "connectionName": "shared_office365",
+                      "operationId": "HttpRequest"
+                    },
+                    "parameters": {
+                      "Uri": "https://graph.microsoft.com/v1.0/me/messages?$search=\"@{outputs('Order_number')}\"&$top=10&$select=from,receivedDateTime,subject,bodyPreview",
+                      "Method": "GET",
+                      "ContentType": "application/json"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Mail_rates": {
+                  "runAfter": {
+                    "Order_number": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                      "connectionName": "shared_office365",
+                      "operationId": "HttpRequest"
+                    },
+                    "parameters": {
+                      "Uri": "https://graph.microsoft.com/v1.0/users/RatesMBX@stibrokerage.com/messages?$search=\"@{outputs('Order_number')}\"&$top=10&$select=from,receivedDateTime,subject,bodyPreview",
+                      "Method": "GET",
+                      "ContentType": "application/json"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Recent_mail": {
+                  "runAfter": {
+                    "Mail_mine": [
+                      "Succeeded",
+                      "Failed"
+                    ],
+                    "Mail_rates": [
+                      "Succeeded",
+                      "Failed"
+                    ]
+                  },
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@union(coalesce(body('Mail_mine')?['value'], json('[]')), coalesce(body('Mail_rates')?['value'], json('[]')))",
+                    "where": "@greaterOrEquals(item()?['receivedDateTime'], addHours(utcNow(), -48))"
+                  }
+                },
+                "Evidence_lines": {
+                  "runAfter": {
+                    "Recent_mail": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('Recent_mail')",
+                    "select": "@concat('--- From: ', item()?['from']?['emailAddress']?['address'], ' | Received: ', item()?['receivedDateTime'], ' | Subject: ', item()?['subject'], decodeUriComponent('%0A'), item()?['bodyPreview'])"
+                  }
+                },
+                "Claude_user_message": {
+                  "runAfter": {
+                    "Load_context": [
+                      "Succeeded"
+                    ],
+                    "Last_sent": [
+                      "Succeeded"
+                    ],
+                    "Evidence_lines": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@concat('FULL CIRCLE ORDER, MANIFEST POSITION AND TRACK & TRACE (pulled ', utcNow(), ' UTC):', decodeUriComponent('%0A'), string(outputs('Load_context')), decodeUriComponent('%0A')decodeUriComponent('%0A'), 'LAST UPDATE SBS SENT THIS CUSTOMER FOR THIS LOAD (null if none):', decodeUriComponent('%0A'), if(empty(body('Last_sent')?['value']), 'null', string(first(body('Last_sent')?['value']))), decodeUriComponent('%0A')decodeUriComponent('%0A'), 'CARRIER EMAILS MENTIONING THIS LOAD, LAST 48 HOURS, OLDEST FIRST:', decodeUriComponent('%0A'), if(empty(body('Evidence_lines')), 'None', join(body('Evidence_lines'), decodeUriComponent('%0A')decodeUriComponent('%0A'))), decodeUriComponent('%0A')decodeUriComponent('%0A'), 'Current time: ', convertFromUtc(utcNow(), 'Pacific Standard Time'), ' Pacific.')"
+                },
+                "Claude": {
+                  "runAfter": {
+                    "Claude_user_message": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Http",
+                  "inputs": {
+                    "method": "POST",
+                    "uri": "https://api.anthropic.com/v1/messages",
+                    "headers": {
+                      "x-api-key": "PASTE-CLAUDE-API-KEY",
+                      "anthropic-version": "2023-06-01",
+                      "content-type": "application/json"
+                    },
+                    "body": {
+                      "model": "claude-haiku-5-5",
+                      "max_tokens": 1024,
+                      "system": "@{variables('TrackingSystemPrompt')}",
+                      "messages": [
+                        {
+                          "role": "user",
+                          "content": "@{outputs('Claude_user_message')}"
+                        }
+                      ],
+                      "output_config": {
+                        "format": {
+                          "type": "json_schema",
+                          "schema": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "order_number",
+                              "customer_reference",
+                              "status_class",
+                              "status_changed",
+                              "current_location",
+                              "eta",
+                              "eta_timezone",
+                              "eta_source",
+                              "evidence",
+                              "discrepancy",
+                              "confidence",
+                              "reason",
+                              "customer_update"
+                            ],
+                            "properties": {
+                              "order_number": {
+                                "type": "string",
+                                "description": "Full Circle order number exactly as given in the F999 row."
+                              },
+                              "customer_reference": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "description": "The customer's own PO, BOL or reference from the F999 row. Null if none."
+                              },
+                              "status_class": {
+                                "type": "string",
+                                "enum": [
+                                  "ON_TIME",
+                                  "AT_RISK",
+                                  "DELAYED",
+                                  "PROBLEM",
+                                  "UNKNOWN"
+                                ]
+                              },
+                              "status_changed": {
+                                "type": "boolean",
+                                "description": "True only if class, ETA or location differs from the last update SBS sent."
+                              },
+                              "current_location": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "description": "City, State from the newest evidence. Null if not stated anywhere."
+                              },
+                              "eta": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "description": "ISO 8601 date-time for delivery from the newest evidence. Null if no source states one."
+                              },
+                              "eta_timezone": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "description": "IANA zone of the delivery location, for example America/Los_Angeles."
+                              },
+                              "eta_source": {
+                                "type": "string",
+                                "enum": [
+                                  "full_circle",
+                                  "carrier_email",
+                                  "none"
+                                ]
+                              },
+                              "evidence": {
+                                "type": "string",
+                                "description": "One line quoting or citing the evidence the status rests on, with its timestamp."
+                              },
+                              "discrepancy": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "description": "One line when Full Circle and carrier email disagree. Null otherwise."
+                              },
+                              "confidence": {
+                                "type": "string",
+                                "enum": [
+                                  "high",
+                                  "medium",
+                                  "low"
+                                ]
+                              },
+                              "reason": {
+                                "type": "string",
+                                "description": "One sentence for the rep: why this class and this confidence."
+                              },
+                              "customer_update": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "additionalProperties": false,
+                                "required": [
+                                  "subject",
+                                  "body"
+                                ],
+                                "properties": {
+                                  "subject": {
+                                    "type": "string",
+                                    "description": "[SBS Update] <customer reference> - <plain status word>"
+                                  },
+                                  "body": {
+                                    "type": "string",
+                                    "description": "Three to six lines, plain text."
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "retryPolicy": {
+                      "type": "fixed",
+                      "count": 3,
+                      "interval": "PT30S"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs"
+                      ]
+                    }
+                  }
+                },
+                "Parse_result": {
+                  "runAfter": {
+                    "Claude": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "ParseJson",
+                  "inputs": {
+                    "content": "@body('Claude')?['content']?[0]?['text']",
+                    "schema": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "order_number",
+                        "customer_reference",
+                        "status_class",
+                        "status_changed",
+                        "current_location",
+                        "eta",
+                        "eta_timezone",
+                        "eta_source",
+                        "evidence",
+                        "discrepancy",
+                        "confidence",
+                        "reason",
+                        "customer_update"
+                      ],
+                      "properties": {
+                        "order_number": {
+                          "type": "string",
+                          "description": "Full Circle order number exactly as given in the F999 row."
+                        },
+                        "customer_reference": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "The customer's own PO, BOL or reference from the F999 row. Null if none."
+                        },
+                        "status_class": {
+                          "type": "string",
+                          "enum": [
+                            "ON_TIME",
+                            "AT_RISK",
+                            "DELAYED",
+                            "PROBLEM",
+                            "UNKNOWN"
+                          ]
+                        },
+                        "status_changed": {
+                          "type": "boolean",
+                          "description": "True only if class, ETA or location differs from the last update SBS sent."
+                        },
+                        "current_location": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "City, State from the newest evidence. Null if not stated anywhere."
+                        },
+                        "eta": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "ISO 8601 date-time for delivery from the newest evidence. Null if no source states one."
+                        },
+                        "eta_timezone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "IANA zone of the delivery location, for example America/Los_Angeles."
+                        },
+                        "eta_source": {
+                          "type": "string",
+                          "enum": [
+                            "full_circle",
+                            "carrier_email",
+                            "none"
+                          ]
+                        },
+                        "evidence": {
+                          "type": "string",
+                          "description": "One line quoting or citing the evidence the status rests on, with its timestamp."
+                        },
+                        "discrepancy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "One line when Full Circle and carrier email disagree. Null otherwise."
+                        },
+                        "confidence": {
+                          "type": "string",
+                          "enum": [
+                            "high",
+                            "medium",
+                            "low"
+                          ]
+                        },
+                        "reason": {
+                          "type": "string",
+                          "description": "One sentence for the rep: why this class and this confidence."
+                        },
+                        "customer_update": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "subject",
+                            "body"
+                          ],
+                          "properties": {
+                            "subject": {
+                              "type": "string",
+                              "description": "[SBS Update] <customer reference> - <plain status word>"
+                            },
+                            "body": {
+                              "type": "string",
+                              "description": "Three to six lines, plain text."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "Should_log": {
+                  "runAfter": {
+                    "Parse_result": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "If",
+                  "expression": {
+                    "or": [
+                      {
+                        "equals": [
+                          "@body('Parse_result')?['status_changed']",
+                          true
+                        ]
+                      },
+                      {
+                        "equals": [
+                          "@length(coalesce(body('Any_row')?['value'], json('[]')))",
+                          0
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Log_row": {
+                      "runAfter": {},
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "PostItem"
+                        },
+                        "parameters": {
+                          "dataset": "https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices",
+                          "table": "Shipment Status Log",
+                          "item/Title": "@outputs('Order_number')",
+                          "item/Customer": "@outputs('Load_context')?['customer']",
+                          "item/CustomerRef": "@coalesce(body('Parse_result')?['customer_reference'], outputs('Load_context')?['customerReference'])",
+                          "item/Rep": "@outputs('Load_context')?['rep']",
+                          "item/StatusClass/Value": "@body('Parse_result')?['status_class']",
+                          "item/Location": "@body('Parse_result')?['current_location']",
+                          "item/ETA": "@body('Parse_result')?['eta']",
+                          "item/ETASource/Value": "@body('Parse_result')?['eta_source']",
+                          "item/Evidence": "@body('Parse_result')?['evidence']",
+                          "item/Discrepancy": "@body('Parse_result')?['discrepancy']",
+                          "item/Confidence/Value": "@body('Parse_result')?['confidence']",
+                          "item/Reason": "@body('Parse_result')?['reason']",
+                          "item/Recipient": "@outputs('Load_context')?['bookingContactEmail']",
+                          "item/DraftSubject": "@body('Parse_result')?['customer_update']?['subject']",
+                          "item/DraftBody": "@body('Parse_result')?['customer_update']?['body']",
+                          "item/SendState/Value": "@if(equals(body('Parse_result')?['customer_update'], null), 'Logged', 'Draft')",
+                          "item/RunId": "@workflow()?['run']?['name']"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    },
+                    "If_draft": {
+                      "runAfter": {
+                        "Log_row": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "If",
+                      "expression": {
+                        "not": {
+                          "equals": [
+                            "@body('Parse_result')?['customer_update']",
+                            null
+                          ]
+                        }
+                      },
+                      "actions": {
+                        "Count_draft": {
+                          "runAfter": {},
+                          "type": "IncrementVariable",
+                          "inputs": {
+                            "name": "DraftCount",
+                            "value": 1
+                          }
+                        },
+                        "Digest_line": {
+                          "runAfter": {
+                            "Count_draft": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "AppendToStringVariable",
+                          "inputs": {
+                            "name": "DigestRows",
+                            "value": "<tr><td>@{body('Parse_result')?['status_class']}</td><td>@{outputs('Order_number')}</td><td>@{outputs('Load_context')?['customer']}</td><td>@{outputs('Load_context')?['customerReference']}</td><td>@{body('Parse_result')?['confidence']}</td><td>@{body('Parse_result')?['reason']}</td></tr>"
+                          }
+                        },
+                        "If_urgent": {
+                          "runAfter": {
+                            "Digest_line": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "If",
+                          "expression": {
+                            "or": [
+                              {
+                                "equals": [
+                                  "@body('Parse_result')?['status_class']",
+                                  "DELAYED"
+                                ]
+                              },
+                              {
+                                "equals": [
+                                  "@body('Parse_result')?['status_class']",
+                                  "PROBLEM"
+                                ]
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "Count_urgent": {
+                              "runAfter": {},
+                              "type": "IncrementVariable",
+                              "inputs": {
+                                "name": "UrgentCount",
+                                "value": 1
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
+                },
+                "Pause": {
+                  "runAfter": {
+                    "Should_log": [
+                      "Succeeded",
+                      "Failed",
+                      "Skipped"
+                    ]
+                  },
+                  "type": "Wait",
+                  "inputs": {
+                    "interval": {
+                      "count": 2,
+                      "unit": "Second"
+                    }
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            }
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "repetitions": 1
+            }
+          }
+        },
+        "If_any_drafts": {
+          "runAfter": {
+            "For_each_manifest": [
+              "Succeeded"
+            ]
+          },
+          "type": "If",
+          "expression": {
+            "greater": [
+              "@variables('DraftCount')",
+              0
+            ]
+          },
+          "actions": {
+            "Digest_email": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                  "connectionName": "shared_office365",
+                  "operationId": "SendEmailV2"
+                },
+                "parameters": {
+                  "emailMessage/To": "michaelt@stibrokerage.com",
+                  "emailMessage/Subject": "SBS tracking: @{variables('DraftCount')} customer updates waiting (@{variables('UrgentCount')} delayed or problem)",
+                  "emailMessage/Body": "<p>Drafts from this run, Problem and Delayed first. Approve them in the <a href=\"https://appriver3651010049.sharepoint.com/sites/SterlingBrokerageServices/Lists/Shipment%20Status%20Log\">Shipment Status Log</a> Needs Me view; the Send Approved flow sends each one the minute its SendState turns Approved.</p><table border=\"1\" cellpadding=\"4\"><tr><th>Class</th><th>Order</th><th>Customer</th><th>Ref</th><th>Confidence</th><th>Why</th></tr>@{variables('DigestRows')}</table><p>Run @{workflow()?['run']?['name']}</p>",
+                  "emailMessage/Importance": "@if(greater(variables('UrgentCount'), 0), 'High', 'Normal')"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "else": {
+            "actions": {}
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}
