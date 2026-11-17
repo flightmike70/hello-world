@@ -1,0 +1,50 @@
+name: SBS extreme weather feed
+
+# Pulls active National Weather Service warnings and watches every 30 minutes and
+# publishes them to the "weather-data" branch, where the SBS Command Center
+# Power BI report reads them:
+#   https://raw.githubusercontent.com/flightmike70/hello-world/weather-data/extreme-weather.geojson
+#   https://raw.githubusercontent.com/flightmike70/hello-world/weather-data/extreme-weather-counties.csv
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weather-feed
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build weather files from NWS alerts
+        run: python weather/build_weather.py "$RUNNER_TEMP/weather-out"
+
+      - name: Publish to the weather-data branch
+        run: |
+          cd "$RUNNER_TEMP/weather-out"
+          cat > README.md <<'MD'
+          Generated every 30 minutes by .github/workflows/weather-feed.yml on master.
+          Source: National Weather Service active alerts (api.weather.gov). Do not edit by hand.
+          MD
+          git init -q -b weather-data
+          git config user.name "sbs-weather-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Weather feed $(date -u +%Y-%m-%dT%H:%MZ)"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push -q -f origin weather-data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
