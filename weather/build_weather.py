@@ -104,6 +104,7 @@ def main():
 
     alerts = fetch(API)["features"]
     now = datetime.now(timezone.utc)
+    stamp = now.astimezone(CENTRAL).strftime("%Y-%m-%d %H:%M")
 
     rows = []          # one per alert x county
     by_county = {}     # fips -> worst alert covering it (for the shaded map)
@@ -152,7 +153,7 @@ def main():
                 "Alert Id": info["id"], "Event": ev, "Category": cat, "Priority": pri,
                 "Severity": info["severity"], "State": st, "County": name, "FIPS": fips,
                 "Lat": lat, "Lon": lon, "Starts CT": info["onset"], "Ends CT": info["ends"],
-                "Headline": info["headline"],
+                "Headline": info["headline"], "Feed Updated CT": stamp,
             })
             cur = by_county.get(fips)
             if cur is None or pri < cur["priority"]:
@@ -170,7 +171,7 @@ def main():
         json.dump({"type": "FeatureCollection", "features": features}, f, separators=(",", ":"))
 
     cols = ["Alert Id", "Event", "Category", "Priority", "Severity", "State", "County", "FIPS",
-            "Lat", "Lon", "Starts CT", "Ends CT", "Headline"]
+            "Lat", "Lon", "Starts CT", "Ends CT", "Headline", "Feed Updated CT"]
     rows.sort(key=lambda r: (r["Priority"], r["Event"], r["State"], r["County"]))
     with open(os.path.join(OUT, "extreme-weather-counties.csv"), "w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols)
@@ -179,7 +180,7 @@ def main():
 
     status = {
         "updated_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "updated_ct": now.astimezone(CENTRAL).strftime("%Y-%m-%d %H:%M"),
+        "updated_ct": stamp,
         "alerts": kept, "counties": len(by_county), "rows": len(rows),
         "source": "National Weather Service, api.weather.gov",
     }
