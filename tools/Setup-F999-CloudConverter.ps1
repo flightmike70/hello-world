@@ -124,7 +124,9 @@ az functionapp deployment source config-zip -g $RG -n $App --src $zip --build-re
 $key = $null
 for ($i = 0; $i -lt 12 -and -not $key; $i++) { $key = az functionapp keys list -g $RG -n $App --query "functionKeys.default" -o tsv 2>$null; if (-not $key) { Start-Sleep 10 } }
 if (-not $key) { Fail "Converter deployed but its key isn't ready yet. Run the same line again in 5 minutes."; return }
-$FuncUrl = "https://$(az functionapp show -n $App -g $RG --query defaultHostName -o tsv)/api/convert?code=$key"
+$HostName = az resource show -g $RG -n $App --resource-type Microsoft.Web/sites --query "properties.defaultHostName" -o tsv 2>$null
+if (-not $HostName) { $HostName = "$App.azurewebsites.net" }
+$FuncUrl = "https://$HostName/api/convert?code=$key"
 Log "Converter ready."
 
 # quick self-test with a tiny .xls (optional, skipped if Excel isn't available)
@@ -213,7 +215,7 @@ if ($status -ne 'Connected') {
     Log "SharePoint connection status now: $status"
 }
 
-$settings | Add-Member -Force functionHost (az functionapp show -n $App -g $RG --query defaultHostName -o tsv)
+$settings | Add-Member -Force functionHost $HostName
 $settings | ConvertTo-Json | Out-File $SettingsFile -Encoding utf8
 Log "`nSettings saved in $SettingsFile"
 if ($status -eq 'Connected') { Log "ALL SET. New F999 .xls files in '$Library' will get a .csv copy within 15 minutes, with or without Monster." }
