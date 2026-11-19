@@ -60,6 +60,7 @@ else {
 
 # ---------- 3. Today's F999 email ----------
 Log "`n=== 3. F999 email check (Outlook on this PC) ==="
+if ($env:F999_SKIP_OUTLOOK) { Log "(skipped)" } else {
 try {
     $ol = New-Object -ComObject Outlook.Application
     $ns = $ol.GetNamespace('MAPI')
@@ -72,6 +73,7 @@ try {
         } catch {}
     }
 } catch { Log "(Couldn't read Outlook on this PC - skip.)" }
+}
 
 # ---------- 4. Re-run the copy now (backfills what the script picks up) ----------
 if ($task) {
